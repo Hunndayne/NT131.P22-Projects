@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useUser } from '../../context/UserContext';
 import {
   Dialog,
   DialogPanel,
@@ -35,6 +36,7 @@ const callsToAction = [
 
 export default function Example() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { user } = useUser();
 
   return (
     <header className="bg-white">
@@ -111,9 +113,13 @@ export default function Example() {
           </a>
         </PopoverGroup>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-          <a href="/login" className="text-sm/6 font-semibold text-gray-900">
-            Log in <span aria-hidden="true">&rarr;</span>
-          </a>
+          {user ? (
+            <span className="text-sm/6 font-semibold text-gray-900">Xin chào, {user.username}</span>
+          ) : (
+            <a href="/login" className="text-sm/6 font-semibold text-gray-900">
+              Log in <span aria-hidden="true">&rarr;</span>
+            </a>
+          )}
         </div>
       </nav>
       <Dialog open={mobileMenuOpen} onClose={setMobileMenuOpen} className="lg:hidden">
