@@ -1,0 +1,15 @@
+{
+  "name": "smart-home-control",
+  "version": "1.0.0",
+  "description": "Smart Home Control System with MQTT and Web Interface",
+  "scripts": {
+    "start": "cd WEBAPP/SERVER && npm start",
+    "dev": "cd WEBAPP/SERVER && npm run dev",
+    "install-all": "cd WEBAPP/SERVER && npm install"
+  },
+  "author": "",
+  "license": "ISC",
+  "workspaces": [
+    "WEBAPP/SERVER"
+  ]
+} 

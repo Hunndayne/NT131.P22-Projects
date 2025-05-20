@@ -8,6 +8,7 @@ const mqttRoutes = require('./routes/mqtt.routes');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { onStateChange } = require('./utils/mqtt');
+const sensorRoutes = require('./routes/sensor.routes');
 
 const app = express();
 const httpServer = createServer(app);
@@ -40,6 +41,7 @@ app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/user', require('./routes/user.routes'));
 app.use('/api/app', require('./routes/app.routes'));
 app.use('/api/mqtt', mqttRoutes);
+app.use('/api/sensor', sensorRoutes);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {

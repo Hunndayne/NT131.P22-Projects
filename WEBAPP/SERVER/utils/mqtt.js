@@ -1,12 +1,15 @@
 const mqtt = require('mqtt');
 require('dotenv').config();
 const DeviceLog = require('../models/deviceLog.model');
+const SensorData = require('../models/sensorData.model');
 
 // Lưu trạng thái các thiết bị
 const deviceStates = {
     'LivingRoom/Lights': 'OFF',
     'Bedroom/Lights': 'OFF',
-    'Kitchen/Lights': 'OFF'
+    'Kitchen/Lights': 'OFF',
+    'Home/Sensor/Temperature': null,
+    'Home/Sensor/Humidity': null
 };
 
 // Lưu trữ các callback để emit sự kiện
@@ -46,27 +49,45 @@ const handleMessage = async (topic, message) => {
             // Nếu không phải JSON, sử dụng message gốc
         }
 
-        // Xác định nguồn điều khiển
-        const source = determineSource(topic);
-        const device = topic; // Sử dụng topic làm tên thiết bị
+        // Xử lý dữ liệu cảm biến
+        if (topic === 'Home/Sensor/Temperature' || topic === 'Home/Sensor/Humidity') {
+            const value = parseFloat(messageData);
+            if (!isNaN(value)) {
+                const sensorType = topic === 'Home/Sensor/Temperature' ? 'TEMPERATURE' : 'HUMIDITY';
+                const unit = sensorType === 'TEMPERATURE' ? '°C' : '%';
+                
+                await SensorData.create({
+                    sensorType,
+                    value,
+                    unit,
+                    timestamp: new Date()
+                });
 
-        // Cập nhật trạng thái
-        deviceStates[device] = messageData;
+                deviceStates[topic] = value;
+            }
+        } else {
+            // Xác định nguồn điều khiển cho các thiết bị khác
+            const source = determineSource(topic);
+            const device = topic;
 
-        // Lưu log
-        await DeviceLog.create({
-            device: device,
-            action: messageData,
-            performedBy: source,
-            method: 'MQTT',
-            source: source,
-            sourceDetails: sourceDetails,
-            ipAddress: client.options.hostname
-        });
+            // Cập nhật trạng thái
+            deviceStates[device] = messageData;
+
+            // Lưu log
+            await DeviceLog.create({
+                device: device,
+                action: messageData,
+                performedBy: source,
+                method: 'MQTT',
+                source: source,
+                sourceDetails: sourceDetails,
+                ipAddress: client.options.hostname
+            });
+        }
 
         // Thông báo cho các client
         stateChangeCallbacks.forEach(callback => {
-            callback(device, messageData);
+            callback(topic, messageData);
         });
     } catch (error) {
         console.error('Error handling message:', error);
@@ -80,7 +101,9 @@ client.on('connect', () => {
     const topics = [
         'LivingRoom/Lights',
         'Bedroom/Lights',
-        'Kitchen/Lights'
+        'Kitchen/Lights',
+        'Home/Sensor/Temperature',
+        'Home/Sensor/Humidity'
     ];
 
     topics.forEach(topic => {
