@@ -4,7 +4,9 @@ const DeviceLog = require('../models/deviceLog.model');
 
 // Lưu trạng thái các thiết bị
 const deviceStates = {
-    'LivingRoom/Lights': 'OFF'
+    'LivingRoom/Lights': 'OFF',
+    'Bedroom/Lights': 'OFF',
+    'Kitchen/Lights': 'OFF'
 };
 
 // Lưu trữ các callback để emit sự kiện
@@ -18,44 +20,81 @@ const mqttOptions = {
 
 const client = mqtt.connect(process.env.MQTT_URI || 'mqtt://localhost:1883', mqttOptions);
 
+// Hàm xác định nguồn điều khiển từ topic
+const determineSource = (topic) => {
+    if (topic.includes('google_home')) return 'GOOGLE_HOME';
+    if (topic.includes('alexa')) return 'ALEXA';
+    if (topic.includes('mobile')) return 'MOBILE';
+    return 'MQTT_DEVICE';
+};
+
+// Hàm xử lý message từ các nguồn khác nhau
+const handleMessage = async (topic, message) => {
+    const messageStr = message.toString();
+    console.log(`Received message on ${topic}: ${messageStr}`);
+
+    try {
+        // Parse message nếu là JSON
+        let messageData = messageStr;
+        let sourceDetails = null;
+        
+        try {
+            messageData = JSON.parse(messageStr);
+            sourceDetails = messageData.details || null;
+            messageData = messageData.action || messageStr;
+        } catch (e) {
+            // Nếu không phải JSON, sử dụng message gốc
+        }
+
+        // Xác định nguồn điều khiển
+        const source = determineSource(topic);
+        const device = topic; // Sử dụng topic làm tên thiết bị
+
+        // Cập nhật trạng thái
+        deviceStates[device] = messageData;
+
+        // Lưu log
+        await DeviceLog.create({
+            device: device,
+            action: messageData,
+            performedBy: source,
+            method: 'MQTT',
+            source: source,
+            sourceDetails: sourceDetails,
+            ipAddress: client.options.hostname
+        });
+
+        // Thông báo cho các client
+        stateChangeCallbacks.forEach(callback => {
+            callback(device, messageData);
+        });
+    } catch (error) {
+        console.error('Error handling message:', error);
+    }
+};
+
 client.on('connect', () => {
     console.log('Connected to MQTT broker with clientId:', mqttOptions.clientId);
     
-    // Subscribe các topic cần thiết
-    client.subscribe('LivingRoom/Lights/status', (err) => {
-        if (err) {
-            console.error('Subscribe error:', err);
-        } else {
-            console.log('Subscribed to LivingRoom/Lights/status');
-        }
+    // Subscribe các topic
+    const topics = [
+        'LivingRoom/Lights',
+        'Bedroom/Lights',
+        'Kitchen/Lights'
+    ];
+
+    topics.forEach(topic => {
+        client.subscribe(topic, (err) => {
+            if (err) {
+                console.error(`Subscribe error for ${topic}:`, err);
+            } else {
+                console.log(`Subscribed to ${topic}`);
+            }
+        });
     });
 });
 
-client.on('message', async (topic, message) => {
-    const messageStr = message.toString();
-    console.log(`Received message on ${topic}: ${messageStr}`);
-    
-    // Cập nhật trạng thái thiết bị
-    if (topic === 'LivingRoom/Lights/status') {
-        deviceStates['LivingRoom/Lights'] = messageStr;
-        
-        // Lưu log khi nhận trạng thái từ MQTT
-        try {
-            await DeviceLog.create({
-                device: 'LivingRoom/Lights',
-                action: messageStr,
-                performedBy: 'MQTT Device'
-            });
-        } catch (error) {
-            console.error('Error saving MQTT log:', error);
-        }
-
-        // Thông báo cho tất cả các client đang lắng nghe
-        stateChangeCallbacks.forEach(callback => {
-            callback('LivingRoom/Lights', messageStr);
-        });
-    }
-});
+client.on('message', handleMessage);
 
 client.on('error', (err) => {
     console.error('MQTT error:', err);
