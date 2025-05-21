@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaLightbulb, FaWater, FaGasPump, FaTemperatureHigh, FaTint } from 'react-icons/fa';
+import { FaLightbulb, FaWater, FaGasPump, FaTemperatureHigh, FaTint, FaHome } from 'react-icons/fa';
 import { Line } from 'react-chartjs-2';
 import { mqttService } from '../services/mqttService';
 import axios from 'axios';
@@ -29,6 +29,8 @@ ChartJS.register(
 const Dashboard = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [username, setUsername] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // State cho trạng thái đèn
   const [lights, setLights] = useState({
@@ -57,6 +59,15 @@ const Dashboard = () => {
     }
   });
 
+  // Cập nhật thời gian mỗi giây
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   // Kiểm tra đăng nhập
   useEffect(() => {
     const checkLogin = async () => {
@@ -67,6 +78,7 @@ const Dashboard = () => {
         
         // Kiểm tra nếu có message và username thì đã đăng nhập thành công
         if (response.data.message === "User is logged in" && response.data.username) {
+          setUsername(response.data.username);
           setIsLoading(false);
           // Lấy dữ liệu ban đầu sau khi xác nhận đã đăng nhập
           fetchLightStatuses();
@@ -309,154 +321,181 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      
-      {/* Error message */}
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-      
-      {/* Phần 1: Đèn */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <FaLightbulb className="text-yellow-500 text-2xl mr-2 animate-pulse" />
-            <h2 className="text-xl font-semibold">Lights Control</h2>
+    <div className="p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Welcome Section */}
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-6 mb-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">
+                Chào mừng {username} về nhà!
+              </h1>
+              <p className="text-lg opacity-90">
+                {currentTime.toLocaleTimeString('vi-VN', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  second: '2-digit'
+                })}
+              </p>
+              <p className="text-lg opacity-90">
+                {currentTime.toLocaleDateString('vi-VN', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </p>
+            </div>
+            <FaHome className="text-6xl opacity-50" />
           </div>
-          <button 
-            onClick={toggleAllLights}
-            disabled={Object.values(loading).some(state => state)}
-            className={`px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center shadow-lg hover:shadow-xl ${
-              Object.values(loading).some(state => state) ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            <FaLightbulb className={`mr-2 ${Object.values(loading).some(state => state) ? 'animate-spin' : 'animate-bounce'}`} />
-            {Object.values(lights).every(light => light) ? 'Turn All Off' : 'Turn All On'}
-          </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button 
-            onClick={() => toggleLight('bedroom')}
-            disabled={loading.bedroom}
-            className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
-              lights.bedroom 
-                ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
-                : 'bg-blue-100 text-blue-800'
-            } ${loading.bedroom ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <FaLightbulb 
-              className={`mr-2 transition-all duration-300 ${
+
+        {/* Error message */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+        
+        {/* Phần 1: Đèn */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <FaLightbulb className="text-yellow-500 text-2xl mr-2 animate-pulse" />
+              <h2 className="text-xl font-semibold">Lights Control</h2>
+            </div>
+            <button 
+              onClick={toggleAllLights}
+              disabled={Object.values(loading).some(state => state)}
+              className={`px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center shadow-lg hover:shadow-xl ${
+                Object.values(loading).some(state => state) ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <FaLightbulb className={`mr-2 ${Object.values(loading).some(state => state) ? 'animate-spin' : 'animate-bounce'}`} />
+              {Object.values(lights).every(light => light) ? 'Turn All Off' : 'Turn All On'}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button 
+              onClick={() => toggleLight('bedroom')}
+              disabled={loading.bedroom}
+              className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
                 lights.bedroom 
-                  ? 'text-yellow-500 animate-pulse' 
-                  : 'text-blue-500'
-              } ${loading.bedroom ? 'animate-spin' : ''}`} 
-            />
-            <span>Bedroom Light</span>
-          </button>
-          <button 
-            onClick={() => toggleLight('kitchen')}
-            disabled={loading.kitchen}
-            className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
-              lights.kitchen 
-                ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
-                : 'bg-blue-100 text-blue-800'
-            } ${loading.kitchen ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <FaLightbulb 
-              className={`mr-2 transition-all duration-300 ${
+                  ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
+                  : 'bg-blue-100 text-blue-800'
+              } ${loading.bedroom ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <FaLightbulb 
+                className={`mr-2 transition-all duration-300 ${
+                  lights.bedroom 
+                    ? 'text-yellow-500 animate-pulse' 
+                    : 'text-blue-500'
+                } ${loading.bedroom ? 'animate-spin' : ''}`} 
+              />
+              <span>Bedroom Light</span>
+            </button>
+            <button 
+              onClick={() => toggleLight('kitchen')}
+              disabled={loading.kitchen}
+              className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
                 lights.kitchen 
-                  ? 'text-yellow-500 animate-pulse' 
-                  : 'text-blue-500'
-              } ${loading.kitchen ? 'animate-spin' : ''}`} 
-            />
-            <span>Kitchen Light</span>
-          </button>
-          <button 
-            onClick={() => toggleLight('livingRoom')}
-            disabled={loading.livingRoom}
-            className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
-              lights.livingRoom 
-                ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
-                : 'bg-blue-100 text-blue-800'
-            } ${loading.livingRoom ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <FaLightbulb 
-              className={`mr-2 transition-all duration-300 ${
+                  ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
+                  : 'bg-blue-100 text-blue-800'
+              } ${loading.kitchen ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <FaLightbulb 
+                className={`mr-2 transition-all duration-300 ${
+                  lights.kitchen 
+                    ? 'text-yellow-500 animate-pulse' 
+                    : 'text-blue-500'
+                } ${loading.kitchen ? 'animate-spin' : ''}`} 
+              />
+              <span>Kitchen Light</span>
+            </button>
+            <button 
+              onClick={() => toggleLight('livingRoom')}
+              disabled={loading.livingRoom}
+              className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
                 lights.livingRoom 
-                  ? 'text-yellow-500 animate-pulse' 
-                  : 'text-blue-500'
-              } ${loading.livingRoom ? 'animate-spin' : ''}`} 
-            />
-            <span>Living Room Light</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Phần 2: Cảm biến */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        {/* Water Sensor */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center mb-4">
-            <FaWater className="text-blue-500 text-2xl mr-2" />
-            <h2 className="text-xl font-semibold">Water Sensor</h2>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-lg">Status:</span>
-            <span className="px-3 py-1 rounded-full bg-green-100 text-green-800">
-              Normal
-            </span>
+                  ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
+                  : 'bg-blue-100 text-blue-800'
+              } ${loading.livingRoom ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <FaLightbulb 
+                className={`mr-2 transition-all duration-300 ${
+                  lights.livingRoom 
+                    ? 'text-yellow-500 animate-pulse' 
+                    : 'text-blue-500'
+                } ${loading.livingRoom ? 'animate-spin' : ''}`} 
+              />
+              <span>Living Room Light</span>
+            </button>
           </div>
         </div>
 
-        {/* Gas Sensor */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center mb-4">
-            <FaGasPump className="text-orange-500 text-2xl mr-2" />
-            <h2 className="text-xl font-semibold">Gas Sensor</h2>
+        {/* Phần 2: Cảm biến */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Water Sensor */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center mb-4">
+              <FaWater className="text-blue-500 text-2xl mr-2" />
+              <h2 className="text-xl font-semibold">Water Sensor</h2>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-lg">Status:</span>
+              <span className="px-3 py-1 rounded-full bg-green-100 text-green-800">
+                Normal
+              </span>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-lg">Status:</span>
-            <span className="px-3 py-1 rounded-full bg-green-100 text-green-800">
-              Safe
-            </span>
-          </div>
-        </div>
-      </div>
 
-      {/* Phần 3 & 4: Nhiệt độ và Độ ẩm */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Temperature */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center mb-4">
-            <FaTemperatureHigh className="text-red-500 text-2xl mr-2" />
-            <h2 className="text-xl font-semibold">Home Temperature</h2>
-          </div>
-          <div className="mb-4">
-            <span className="text-3xl font-bold text-red-500">
-              {sensorData.temperature.current !== null ? `${sensorData.temperature.current}°C` : 'Loading...'}
-            </span>
-          </div>
-          <div className="h-48">
-            <Line data={temperatureData} options={chartOptions} />
+          {/* Gas Sensor */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center mb-4">
+              <FaGasPump className="text-orange-500 text-2xl mr-2" />
+              <h2 className="text-xl font-semibold">Gas Sensor</h2>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-lg">Status:</span>
+              <span className="px-3 py-1 rounded-full bg-green-100 text-green-800">
+                Safe
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Humidity */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center mb-4">
-            <FaTint className="text-blue-500 text-2xl mr-2" />
-            <h2 className="text-xl font-semibold">Home Humidity</h2>
+        {/* Phần 3 & 4: Nhiệt độ và Độ ẩm */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Temperature */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center mb-4">
+              <FaTemperatureHigh className="text-red-500 text-2xl mr-2" />
+              <h2 className="text-xl font-semibold">Home Temperature</h2>
+            </div>
+            <div className="mb-4">
+              <span className="text-3xl font-bold text-red-500">
+                {sensorData.temperature.current !== null ? `${sensorData.temperature.current}°C` : 'Loading...'}
+              </span>
+            </div>
+            <div className="h-48">
+              <Line data={temperatureData} options={chartOptions} />
+            </div>
           </div>
-          <div className="mb-4">
-            <span className="text-3xl font-bold text-blue-500">
-              {sensorData.humidity.current !== null ? `${sensorData.humidity.current}%` : 'Loading...'}
-            </span>
-          </div>
-          <div className="h-48">
-            <Line data={humidityData} options={chartOptions} />
+
+          {/* Humidity */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center mb-4">
+              <FaTint className="text-blue-500 text-2xl mr-2" />
+              <h2 className="text-xl font-semibold">Home Humidity</h2>
+            </div>
+            <div className="mb-4">
+              <span className="text-3xl font-bold text-blue-500">
+                {sensorData.humidity.current !== null ? `${sensorData.humidity.current}%` : 'Loading...'}
+              </span>
+            </div>
+            <div className="h-48">
+              <Line data={humidityData} options={chartOptions} />
+            </div>
           </div>
         </div>
       </div>
