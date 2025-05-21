@@ -1,0 +1,175 @@
+import axios from 'axios';
+
+const API_URL = 'http://localhost:3000/api/mqtt';
+const SENSOR_API_URL = 'http://localhost:3000/api/sensor';
+
+export const mqttService = {
+  // Bật đèn phòng khách
+  turnOnLivingRoomLight: async () => {
+    try {
+      const response = await axios.post(`${API_URL}/LivingRoom/Lights/ON`, {}, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error turning on living room light:', error);
+      throw error;
+    }
+  },
+
+  // Tắt đèn phòng khách
+  turnOffLivingRoomLight: async () => {
+    try {
+      const response = await axios.post(`${API_URL}/LivingRoom/Lights/OFF`, {}, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error turning off living room light:', error);
+      throw error;
+    }
+  },
+
+  // Bật đèn phòng ngủ
+  turnOnBedroomLight: async () => {
+    try {
+      const response = await axios.post(`${API_URL}/Bedroom/Lights/ON`, {}, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error turning on bedroom light:', error);
+      throw error;
+    }
+  },
+
+  // Tắt đèn phòng ngủ
+  turnOffBedroomLight: async () => {
+    try {
+      const response = await axios.post(`${API_URL}/Bedroom/Lights/OFF`, {}, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error turning off bedroom light:', error);
+      throw error;
+    }
+  },
+
+  // Bật đèn phòng bếp
+  turnOnKitchenLight: async () => {
+    try {
+      const response = await axios.post(`${API_URL}/Kitchen/Lights/ON`, {}, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error turning on kitchen light:', error);
+      throw error;
+    }
+  },
+
+  // Tắt đèn phòng bếp
+  turnOffKitchenLight: async () => {
+    try {
+      const response = await axios.post(`${API_URL}/Kitchen/Lights/OFF`, {}, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error turning off kitchen light:', error);
+      throw error;
+    }
+  },
+
+  // Lấy trạng thái đèn phòng khách
+  getLivingRoomLightStatus: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/LivingRoom/Lights/status`, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting living room light status:', error);
+      throw error;
+    }
+  },
+
+  // Lấy trạng thái đèn phòng ngủ
+  getBedroomLightStatus: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/Bedroom/Lights/status`, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting bedroom light status:', error);
+      throw error;
+    }
+  },
+
+  // Lấy trạng thái đèn phòng bếp
+  getKitchenLightStatus: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/Kitchen/Lights/status`, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting kitchen light status:', error);
+      throw error;
+    }
+  },
+
+  // Lấy nhiệt độ mới nhất
+  getLatestTemperature: async () => {
+    try {
+      const response = await axios.get(`${SENSOR_API_URL}/temperature/latest`, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting latest temperature:', error);
+      throw error;
+    }
+  },
+
+  // Lấy lịch sử nhiệt độ
+  getTemperatureHistory: async () => {
+    try {
+      const response = await axios.get(`${SENSOR_API_URL}/temperature/history`, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting temperature history:', error);
+      throw error;
+    }
+  },
+
+  // Lấy độ ẩm mới nhất
+  getLatestHumidity: async () => {
+    try {
+      const response = await axios.get(`${SENSOR_API_URL}/humidity/latest`, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting latest humidity:', error);
+      throw error;
+    }
+  },
+
+  // Lấy lịch sử độ ẩm
+  getHumidityHistory: async () => {
+    try {
+      const response = await axios.get(`${SENSOR_API_URL}/humidity/history`, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting humidity history:', error);
+      throw error;
+    }
+  }
+}; 

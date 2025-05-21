@@ -77,7 +77,7 @@ exports.checklogin = (req, res) => {
         return res.status(200).json({
             message: "User is logged in",
             // user_id: req.session.user_id,
-            username: req.session.username
+            username: req.session.username,
         });
     } else {
         return res.status(401).json({ error: "Not logged in" });

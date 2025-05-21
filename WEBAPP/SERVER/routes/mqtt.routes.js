@@ -14,6 +14,26 @@ router.get('/LivingRoom/Lights/status', isAuthenticated, (req, res) => {
     });
 });
 
+// Get bedroom lights status
+router.get('/Bedroom/Lights/status', isAuthenticated, (req, res) => {
+    const status = getDeviceState('Bedroom/Lights');
+    res.json({ 
+        status: 'ok',
+        device: 'Bedroom/Lights',
+        state: status
+    });
+});
+
+// Get kitchen lights status
+router.get('/Kitchen/Lights/status', isAuthenticated, (req, res) => {
+    const status = getDeviceState('Kitchen/Lights');
+    res.json({ 
+        status: 'ok',
+        device: 'Kitchen/Lights',
+        state: status
+    });
+});
+
 // Get device logs with filters and pagination
 router.get('/LivingRoom/Lights/logs', isAuthenticated, async (req, res) => {
     try {
@@ -172,6 +192,70 @@ router.post('/LivingRoom/Lights/:action', isAuthenticated, async (req, res) => {
         });
 
         publish('LivingRoom/Lights', action);
+        res.json({ 
+            status: 'ok', 
+            action: `lamp ${action.toLowerCase()}`,
+            state: action
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'error',
+            message: error.message 
+        });
+    }
+});
+
+// Control bedroom lights
+router.post('/Bedroom/Lights/:action', isAuthenticated, async (req, res) => {
+    const action = req.params.action.toUpperCase();
+    if (action !== 'ON' && action !== 'OFF') {
+        return res.status(400).json({ status: 'error', message: 'Invalid action' });
+    }
+    
+    try {
+        // Lưu log với thông tin chi tiết
+        await DeviceLog.create({
+            device: 'Bedroom/Lights',
+            action: action,
+            performedBy: req.session.username,
+            userAgent: req.headers['user-agent'],
+            ipAddress: req.ip,
+            method: 'API'
+        });
+
+        publish('Bedroom/Lights', action);
+        res.json({ 
+            status: 'ok', 
+            action: `lamp ${action.toLowerCase()}`,
+            state: action
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'error',
+            message: error.message 
+        });
+    }
+});
+
+// Control kitchen lights
+router.post('/Kitchen/Lights/:action', isAuthenticated, async (req, res) => {
+    const action = req.params.action.toUpperCase();
+    if (action !== 'ON' && action !== 'OFF') {
+        return res.status(400).json({ status: 'error', message: 'Invalid action' });
+    }
+    
+    try {
+        // Lưu log với thông tin chi tiết
+        await DeviceLog.create({
+            device: 'Kitchen/Lights',
+            action: action,
+            performedBy: req.session.username,
+            userAgent: req.headers['user-agent'],
+            ipAddress: req.ip,
+            method: 'API'
+        });
+
+        publish('Kitchen/Lights', action);
         res.json({ 
             status: 'ok', 
             action: `lamp ${action.toLowerCase()}`,

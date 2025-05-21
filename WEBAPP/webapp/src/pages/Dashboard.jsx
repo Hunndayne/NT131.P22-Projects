@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaLightbulb, FaWater, FaGasPump, FaTemperatureHigh, FaTint } from 'react-icons/fa';
 import { Line } from 'react-chartjs-2';
+import { mqttService } from '../services/mqttService';
+import axios from 'axios';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -24,6 +27,9 @@ ChartJS.register(
 );
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+
   // State cho trạng thái đèn
   const [lights, setLights] = useState({
     bedroom: false,
@@ -31,43 +37,250 @@ const Dashboard = () => {
     livingRoom: false
   });
 
+  // State cho loading và error
+  const [loading, setLoading] = useState({
+    bedroom: false,
+    kitchen: false,
+    livingRoom: false
+  });
+  const [error, setError] = useState('');
+
+  // State cho nhiệt độ và độ ẩm
+  const [sensorData, setSensorData] = useState({
+    temperature: {
+      current: null,
+      history: []
+    },
+    humidity: {
+      current: null,
+      history: []
+    }
+  });
+
+  // Kiểm tra đăng nhập
+  useEffect(() => {
+    const checkLogin = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/auth/checklogin', {
+          withCredentials: true
+        });
+        
+        // Kiểm tra nếu có message và username thì đã đăng nhập thành công
+        if (response.data.message === "User is logged in" && response.data.username) {
+          setIsLoading(false);
+          // Lấy dữ liệu ban đầu sau khi xác nhận đã đăng nhập
+          fetchLightStatuses();
+          fetchSensorData();
+        } else {
+          // Nếu có error hoặc không có message/username thì chưa đăng nhập
+          console.log('Not logged in, redirecting to login page');
+          navigate('/login');
+        }
+      } catch (error) {
+        console.error('Error checking login status:', error);
+        // Nếu có lỗi hoặc response có error thì chưa đăng nhập
+        if (error.response?.data?.error === "Not logged in") {
+          console.log('Not logged in, redirecting to login page');
+          navigate('/login');
+        } else {
+          console.error('Unexpected error:', error);
+          setError('An unexpected error occurred. Please try again.');
+        }
+      }
+    };
+
+    checkLogin();
+  }, [navigate]);
+
+  // Thiết lập interval sau khi đã xác nhận đăng nhập
+  useEffect(() => {
+    if (isLoading) return;
+
+    // Thiết lập interval để kiểm tra trạng thái mỗi giây
+    const lightIntervalId = setInterval(() => {
+      fetchLightStatuses();
+    }, 1000);
+
+    // Thiết lập interval để cập nhật dữ liệu cảm biến mỗi 5 giây
+    const sensorIntervalId = setInterval(() => {
+      fetchSensorData();
+    }, 5000);
+
+    // Cleanup interval khi component unmount
+    return () => {
+      clearInterval(lightIntervalId);
+      clearInterval(sensorIntervalId);
+    };
+  }, [isLoading]);
+
+  // Hàm lấy trạng thái đèn
+  const fetchLightStatuses = async () => {
+    try {
+      const [livingRoomStatus, bedroomStatus, kitchenStatus] = await Promise.all([
+        mqttService.getLivingRoomLightStatus(),
+        mqttService.getBedroomLightStatus(),
+        mqttService.getKitchenLightStatus()
+      ]);
+
+      setLights(prev => {
+        const newState = {
+          livingRoom: livingRoomStatus.state === 'ON',
+          bedroom: bedroomStatus.state === 'ON',
+          kitchen: kitchenStatus.state === 'ON'
+        };
+        
+        // Chỉ cập nhật state nếu có thay đổi
+        if (JSON.stringify(prev) !== JSON.stringify(newState)) {
+          return newState;
+        }
+        return prev;
+      });
+    } catch (error) {
+      console.error('Error fetching light statuses:', error);
+    }
+  };
+
+  // Hàm lấy dữ liệu cảm biến
+  const fetchSensorData = async () => {
+    try {
+      const [latestTemp, historyTemp, latestHumidity, historyHumidity] = await Promise.all([
+        mqttService.getLatestTemperature(),
+        mqttService.getTemperatureHistory(),
+        mqttService.getLatestHumidity(),
+        mqttService.getHumidityHistory()
+      ]);
+
+      setSensorData({
+        temperature: {
+          current: latestTemp.value,
+          history: historyTemp.map(item => ({
+            value: item.value,
+            timestamp: new Date(item.timestamp)
+          }))
+        },
+        humidity: {
+          current: latestHumidity.value,
+          history: historyHumidity.map(item => ({
+            value: item.value,
+            timestamp: new Date(item.timestamp)
+          }))
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching sensor data:', error);
+    }
+  };
+
   // Hàm bật/tắt đèn
-  const toggleLight = (room) => {
-    setLights(prev => ({
-      ...prev,
-      [room]: !prev[room]
-    }));
+  const toggleLight = async (room) => {
+    setLoading(prev => ({ ...prev, [room]: true }));
+    setError('');
+    try {
+      switch (room) {
+        case 'livingRoom':
+          if (!lights.livingRoom) {
+            await mqttService.turnOnLivingRoomLight();
+          } else {
+            await mqttService.turnOffLivingRoomLight();
+          }
+          break;
+        case 'bedroom':
+          if (!lights.bedroom) {
+            await mqttService.turnOnBedroomLight();
+          } else {
+            await mqttService.turnOffBedroomLight();
+          }
+          break;
+        case 'kitchen':
+          if (!lights.kitchen) {
+            await mqttService.turnOnKitchenLight();
+          } else {
+            await mqttService.turnOffKitchenLight();
+          }
+          break;
+      }
+      // Cập nhật lại trạng thái sau khi bật/tắt
+      await fetchLightStatuses();
+    } catch (error) {
+      console.error(`Error toggling ${room} light:`, error);
+      setError(`Failed to control ${room} light. Please try again.`);
+    } finally {
+      setLoading(prev => ({ ...prev, [room]: false }));
+    }
   };
 
   // Hàm bật/tắt tất cả đèn
-  const toggleAllLights = () => {
+  const toggleAllLights = async () => {
     const allOn = Object.values(lights).every(light => light);
-    setLights({
-      bedroom: !allOn,
-      kitchen: !allOn,
-      livingRoom: !allOn
-    });
+    setError('');
+    
+    try {
+      // Set loading state for all lights
+      setLoading({
+        bedroom: true,
+        kitchen: true,
+        livingRoom: true
+      });
+
+      // Toggle all lights
+      if (!allOn) {
+        await Promise.all([
+          mqttService.turnOnLivingRoomLight(),
+          mqttService.turnOnBedroomLight(),
+          mqttService.turnOnKitchenLight()
+        ]);
+      } else {
+        await Promise.all([
+          mqttService.turnOffLivingRoomLight(),
+          mqttService.turnOffBedroomLight(),
+          mqttService.turnOffKitchenLight()
+        ]);
+      }
+
+      // Cập nhật lại trạng thái sau khi bật/tắt
+      await fetchLightStatuses();
+    } catch (error) {
+      console.error('Error toggling all lights:', error);
+      setError('Failed to control all lights. Please try again.');
+    } finally {
+      setLoading({
+        bedroom: false,
+        kitchen: false,
+        livingRoom: false
+      });
+    }
   };
 
-  // Dữ liệu mẫu cho biểu đồ
+  // Dữ liệu cho biểu đồ nhiệt độ
   const temperatureData = {
-    labels: ['1h', '2h', '3h', '4h', '5h', '6h'],
+    labels: sensorData.temperature.history.map(item => 
+      item.timestamp.toLocaleTimeString('vi-VN', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+    ),
     datasets: [
       {
         label: 'Temperature (°C)',
-        data: [25, 26, 24, 25, 27, 26],
+        data: sensorData.temperature.history.map(item => item.value),
         borderColor: 'rgb(255, 99, 132)',
         tension: 0.4,
       },
     ],
   };
 
+  // Dữ liệu cho biểu đồ độ ẩm
   const humidityData = {
-    labels: ['1h', '2h', '3h', '4h', '5h', '6h'],
+    labels: sensorData.humidity.history.map(item => 
+      item.timestamp.toLocaleTimeString('vi-VN', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+    ),
     datasets: [
       {
         label: 'Humidity (%)',
-        data: [45, 50, 48, 52, 49, 51],
+        data: sensorData.humidity.history.map(item => item.value),
         borderColor: 'rgb(53, 162, 235)',
         tension: 0.4,
       },
@@ -84,9 +297,27 @@ const Dashboard = () => {
     },
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+      
+      {/* Error message */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
       
       {/* Phần 1: Đèn */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -97,61 +328,67 @@ const Dashboard = () => {
           </div>
           <button 
             onClick={toggleAllLights}
-            className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center shadow-lg hover:shadow-xl"
+            disabled={Object.values(loading).some(state => state)}
+            className={`px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center shadow-lg hover:shadow-xl ${
+              Object.values(loading).some(state => state) ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            <FaLightbulb className="mr-2 animate-bounce" />
+            <FaLightbulb className={`mr-2 ${Object.values(loading).some(state => state) ? 'animate-spin' : 'animate-bounce'}`} />
             {Object.values(lights).every(light => light) ? 'Turn All Off' : 'Turn All On'}
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button 
             onClick={() => toggleLight('bedroom')}
+            disabled={loading.bedroom}
             className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
               lights.bedroom 
                 ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
                 : 'bg-blue-100 text-blue-800'
-            }`}
+            } ${loading.bedroom ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <FaLightbulb 
               className={`mr-2 transition-all duration-300 ${
                 lights.bedroom 
                   ? 'text-yellow-500 animate-pulse' 
                   : 'text-blue-500'
-              }`} 
+              } ${loading.bedroom ? 'animate-spin' : ''}`} 
             />
             <span>Bedroom Light</span>
           </button>
           <button 
             onClick={() => toggleLight('kitchen')}
+            disabled={loading.kitchen}
             className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
               lights.kitchen 
                 ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
                 : 'bg-blue-100 text-blue-800'
-            }`}
+            } ${loading.kitchen ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <FaLightbulb 
               className={`mr-2 transition-all duration-300 ${
                 lights.kitchen 
                   ? 'text-yellow-500 animate-pulse' 
                   : 'text-blue-500'
-              }`} 
+              } ${loading.kitchen ? 'animate-spin' : ''}`} 
             />
             <span>Kitchen Light</span>
           </button>
           <button 
             onClick={() => toggleLight('livingRoom')}
+            disabled={loading.livingRoom}
             className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
               lights.livingRoom 
                 ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
                 : 'bg-blue-100 text-blue-800'
-            }`}
+            } ${loading.livingRoom ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <FaLightbulb 
               className={`mr-2 transition-all duration-300 ${
                 lights.livingRoom 
                   ? 'text-yellow-500 animate-pulse' 
                   : 'text-blue-500'
-              }`} 
+              } ${loading.livingRoom ? 'animate-spin' : ''}`} 
             />
             <span>Living Room Light</span>
           </button>
@@ -198,7 +435,9 @@ const Dashboard = () => {
             <h2 className="text-xl font-semibold">Home Temperature</h2>
           </div>
           <div className="mb-4">
-            <span className="text-3xl font-bold text-red-500">25°C</span>
+            <span className="text-3xl font-bold text-red-500">
+              {sensorData.temperature.current !== null ? `${sensorData.temperature.current}°C` : 'Loading...'}
+            </span>
           </div>
           <div className="h-48">
             <Line data={temperatureData} options={chartOptions} />
@@ -212,7 +451,9 @@ const Dashboard = () => {
             <h2 className="text-xl font-semibold">Home Humidity</h2>
           </div>
           <div className="mb-4">
-            <span className="text-3xl font-bold text-blue-500">45%</span>
+            <span className="text-3xl font-bold text-blue-500">
+              {sensorData.humidity.current !== null ? `${sensorData.humidity.current}%` : 'Loading...'}
+            </span>
           </div>
           <div className="h-48">
             <Line data={humidityData} options={chartOptions} />
