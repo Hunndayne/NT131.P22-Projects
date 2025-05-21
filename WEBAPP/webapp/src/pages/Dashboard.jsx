@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FaLightbulb, FaWater, FaGasPump, FaTemperatureHigh, FaTint } from 'react-icons/fa';
 import { Line } from 'react-chartjs-2';
 import {
@@ -24,6 +24,31 @@ ChartJS.register(
 );
 
 const Dashboard = () => {
+  // State cho trạng thái đèn
+  const [lights, setLights] = useState({
+    bedroom: false,
+    kitchen: false,
+    livingRoom: false
+  });
+
+  // Hàm bật/tắt đèn
+  const toggleLight = (room) => {
+    setLights(prev => ({
+      ...prev,
+      [room]: !prev[room]
+    }));
+  };
+
+  // Hàm bật/tắt tất cả đèn
+  const toggleAllLights = () => {
+    const allOn = Object.values(lights).every(light => light);
+    setLights({
+      bedroom: !allOn,
+      kitchen: !allOn,
+      livingRoom: !allOn
+    });
+  };
+
   // Dữ liệu mẫu cho biểu đồ
   const temperatureData = {
     labels: ['1h', '2h', '3h', '4h', '5h', '6h'],
@@ -65,21 +90,69 @@ const Dashboard = () => {
       
       {/* Phần 1: Đèn */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-center mb-4">
-          <FaLightbulb className="text-yellow-500 text-2xl mr-2" />
-          <h2 className="text-xl font-semibold">Lights Control</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <FaLightbulb className="text-yellow-500 text-2xl mr-2 animate-pulse" />
+            <h2 className="text-xl font-semibold">Lights Control</h2>
+          </div>
+          <button 
+            onClick={toggleAllLights}
+            className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center shadow-lg hover:shadow-xl"
+          >
+            <FaLightbulb className="mr-2 animate-bounce" />
+            {Object.values(lights).every(light => light) ? 'Turn All Off' : 'Turn All On'}
+          </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center justify-center p-4 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">
-            <FaLightbulb className="text-blue-500 mr-2" />
+          <button 
+            onClick={() => toggleLight('bedroom')}
+            className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+              lights.bedroom 
+                ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
+                : 'bg-blue-100 text-blue-800'
+            }`}
+          >
+            <FaLightbulb 
+              className={`mr-2 transition-all duration-300 ${
+                lights.bedroom 
+                  ? 'text-yellow-500 animate-pulse' 
+                  : 'text-blue-500'
+              }`} 
+            />
             <span>Bedroom Light</span>
           </button>
-          <button className="flex items-center justify-center p-4 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">
-            <FaLightbulb className="text-blue-500 mr-2" />
+          <button 
+            onClick={() => toggleLight('kitchen')}
+            className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+              lights.kitchen 
+                ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
+                : 'bg-blue-100 text-blue-800'
+            }`}
+          >
+            <FaLightbulb 
+              className={`mr-2 transition-all duration-300 ${
+                lights.kitchen 
+                  ? 'text-yellow-500 animate-pulse' 
+                  : 'text-blue-500'
+              }`} 
+            />
             <span>Kitchen Light</span>
           </button>
-          <button className="flex items-center justify-center p-4 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">
-            <FaLightbulb className="text-blue-500 mr-2" />
+          <button 
+            onClick={() => toggleLight('livingRoom')}
+            className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+              lights.livingRoom 
+                ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
+                : 'bg-blue-100 text-blue-800'
+            }`}
+          >
+            <FaLightbulb 
+              className={`mr-2 transition-all duration-300 ${
+                lights.livingRoom 
+                  ? 'text-yellow-500 animate-pulse' 
+                  : 'text-blue-500'
+              }`} 
+            />
             <span>Living Room Light</span>
           </button>
         </div>
