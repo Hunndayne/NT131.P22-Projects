@@ -10,7 +10,8 @@ const deviceStates = {
     'Kitchen/Lights': 'OFF',
     'Home/Sensor/Temperature': null,
     'Home/Sensor/Humidity': null,
-    'esp32/rain_servo/state': 'CLOSE'  // Thêm trạng thái cửa sổ
+    'esp32/rain_servo/state': 'CLOSE',  // Trạng thái cửa sổ
+    'esp32/servo_door/state': 'CLOSE'   // Trạng thái cửa ra vào
 };
 
 // Lưu trữ các callback để emit sự kiện
@@ -50,6 +51,11 @@ const handleMessage = async (topic, message) => {
             // Nếu không phải JSON, sử dụng message gốc
         }
 
+        // Chuẩn hóa trạng thái CLOSED thành CLOSE
+        if (messageData === 'CLOSED') {
+            messageData = 'CLOSE';
+        }
+
         // Xử lý dữ liệu cảm biến
         if (topic === 'Home/Sensor/Temperature' || topic === 'Home/Sensor/Humidity') {
             const value = parseFloat(messageData);
@@ -69,7 +75,14 @@ const handleMessage = async (topic, message) => {
         } else {
             // Xác định nguồn điều khiển cho các thiết bị khác
             const source = determineSource(topic);
-            const device = topic === 'esp32/rain_servo/state' ? 'Window' : topic;
+            let device = topic;
+            
+            // Map topic sang device name
+            if (topic === 'esp32/rain_servo/state') {
+                device = 'Window';
+            } else if (topic === 'esp32/servo_door/state') {
+                device = 'Door';
+            }
 
             // Cập nhật trạng thái
             deviceStates[topic] = messageData;
@@ -105,7 +118,8 @@ client.on('connect', () => {
         'Kitchen/Lights',
         'Home/Sensor/Temperature',
         'Home/Sensor/Humidity',
-        'esp32/rain_servo/state'  // Thêm topic cửa sổ
+        'esp32/rain_servo/state',    // Topic cửa sổ
+        'esp32/servo_door/state'     // Topic cửa ra vào
     ];
 
     topics.forEach(topic => {

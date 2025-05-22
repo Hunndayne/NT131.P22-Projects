@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaLightbulb, FaWater, FaGasPump, FaTemperatureHigh, FaTint, FaHome, FaWindowMaximize } from 'react-icons/fa';
+import { FaLightbulb, FaWater, FaGasPump, FaTemperatureHigh, FaTint, FaHome, FaWindowMaximize, FaDoorOpen } from 'react-icons/fa';
 import { Line } from 'react-chartjs-2';
 import { mqttService } from '../services/mqttService';
 import axios from 'axios';
@@ -42,12 +42,16 @@ const Dashboard = () => {
   // State cho trạng thái cửa sổ
   const [window, setWindow] = useState(false);
 
+  // State cho trạng thái cửa chính
+  const [door, setDoor] = useState(false);
+
   // State cho loading và error
   const [loading, setLoading] = useState({
     bedroom: false,
     kitchen: false,
     livingRoom: false,
-    window: false
+    window: false,
+    door: false
   });
   const [error, setError] = useState('');
 
@@ -62,6 +66,10 @@ const Dashboard = () => {
       history: []
     }
   });
+
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [password, setPassword] = useState('');
+  const [doorAction, setDoorAction] = useState(null); // 'open' or 'close'
 
   // Cập nhật thời gian mỗi giây
   useEffect(() => {
@@ -88,6 +96,7 @@ const Dashboard = () => {
           fetchLightStatuses();
           fetchSensorData();
           fetchWindowStatus();
+          fetchDoorStatus();
         } else {
           // Nếu có error hoặc không có message/username thì chưa đăng nhập
           console.log('Not logged in, redirecting to login page');
@@ -117,6 +126,7 @@ const Dashboard = () => {
     const lightIntervalId = setInterval(() => {
       fetchLightStatuses();
       fetchWindowStatus();
+      fetchDoorStatus();
     }, 1000);
 
     // Thiết lập interval để cập nhật dữ liệu cảm biến mỗi 5 giây
@@ -165,6 +175,16 @@ const Dashboard = () => {
       setWindow(windowStatus.state === 'OPEN');
     } catch (error) {
       console.error('Error fetching window status:', error);
+    }
+  };
+
+  // Hàm lấy trạng thái cửa chính
+  const fetchDoorStatus = async () => {
+    try {
+      const doorStatus = await mqttService.getDoorStatus();
+      setDoor(doorStatus.state === 'OPEN');
+    } catch (error) {
+      console.error('Error fetching door status:', error);
     }
   };
 
@@ -296,6 +316,44 @@ const Dashboard = () => {
       setError('Failed to control window. Please try again.');
     } finally {
       setLoading(prev => ({ ...prev, window: false }));
+    }
+  };
+
+  // Hàm đóng/mở cửa chính
+  const toggleDoor = async () => {
+    if (!door) {
+      // Nếu đang mở cửa thì yêu cầu mật khẩu
+      setDoorAction('open');
+      setShowPasswordDialog(true);
+    } else {
+      // Nếu đang đóng cửa thì không cần mật khẩu
+      setLoading(prev => ({ ...prev, door: true }));
+      setError('');
+      try {
+        await mqttService.closeDoor();
+        await fetchDoorStatus();
+      } catch (error) {
+        console.error('Error closing door:', error);
+        setError('Failed to close door. Please try again.');
+      } finally {
+        setLoading(prev => ({ ...prev, door: false }));
+      }
+    }
+  };
+
+  const handleDoorAction = async () => {
+    setLoading(prev => ({ ...prev, door: true }));
+    setError('');
+    try {
+      await mqttService.openDoor(password);
+      await fetchDoorStatus();
+      setShowPasswordDialog(false);
+      setPassword('');
+    } catch (error) {
+      console.error('Error opening door:', error);
+      setError('Failed to open door. Please check your password and try again.');
+    } finally {
+      setLoading(prev => ({ ...prev, door: false }));
     }
   };
 
@@ -474,10 +532,10 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <FaWindowMaximize className="text-blue-500 text-2xl mr-2" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Window Control</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Window & Door Control</h2>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button 
               onClick={toggleWindow}
               disabled={loading.window}
@@ -495,6 +553,25 @@ const Dashboard = () => {
                 } ${loading.window ? 'animate-spin' : ''}`} 
               />
               <span>{window ? 'Close Window' : 'Open Window'}</span>
+            </button>
+
+            <button 
+              onClick={toggleDoor}
+              disabled={loading.door}
+              className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                door 
+                  ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 shadow-lg' 
+                  : 'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-200'
+              } ${loading.door ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <FaDoorOpen 
+                className={`mr-2 transition-all duration-300 ${
+                  door 
+                    ? 'text-blue-500 animate-pulse' 
+                    : 'text-gray-500 dark:text-gray-400'
+                } ${loading.door ? 'animate-spin' : ''}`} 
+              />
+              <span>{door ? 'Close Door' : 'Open Door'}</span>
             </button>
           </div>
         </div>
@@ -565,6 +642,44 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Password Dialog */}
+      {showPasswordDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96">
+            <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              Enter Password to {doorAction === 'open' ? 'Open' : 'Close'} Door
+            </h3>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-2 mb-4 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Enter your password"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowPasswordDialog(false);
+                  setPassword('');
+                }}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDoorAction}
+                disabled={loading.door || !password}
+                className={`px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 ${
+                  (loading.door || !password) ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {loading.door ? 'Processing...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

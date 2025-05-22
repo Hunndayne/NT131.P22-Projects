@@ -210,5 +210,44 @@ export const mqttService = {
       console.error('Error getting window status:', error);
       throw error;
     }
+  },
+
+  // Door Control
+  getDoorStatus: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/door/status`, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting door status:', error);
+      throw error;
+    }
+  },
+
+  openDoor: async (password) => {
+    try {
+      const response = await axios.post(`${API_URL}/door/open`, {
+        password: password
+      }, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error opening door:', error);
+      throw error;
+    }
+  },
+
+  closeDoor: async () => {
+    try {
+      const response = await axios.post(`${API_URL}/door/close`, {}, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error closing door:', error);
+      throw error;
+    }
   }
 }; 
