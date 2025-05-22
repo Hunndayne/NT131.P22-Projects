@@ -641,10 +641,33 @@ router.post('/Door/:action', isAuthenticated, async (req, res) => {
         });
 
         publish('esp32/servo_door/state', action);
+        
+        // If door is opened, schedule automatic closing after 15 seconds
+        if (action === 'OPEN') {
+            setTimeout(async () => {
+                try {
+                    // Save log for automatic closing
+                    await DeviceLog.create({
+                        device: 'Door',
+                        action: 'CLOSE',
+                        performedBy: 'SYSTEM',
+                        userAgent: 'AUTOMATIC',
+                        ipAddress: 'SYSTEM',
+                        method: 'API'
+                    });
+                    
+                    publish('esp32/servo_door/state', 'CLOSE');
+                } catch (error) {
+                    console.error('Error in automatic door closing:', error);
+                }
+            }, 15000); // 15 seconds
+        }
+
         res.json({ 
             status: 'ok', 
             action: `door ${action.toLowerCase()}`,
-            state: action
+            state: action,
+            autoClose: action === 'OPEN' ? 'Scheduled in 15 seconds' : undefined
         });
     } catch (error) {
         res.status(500).json({ 
