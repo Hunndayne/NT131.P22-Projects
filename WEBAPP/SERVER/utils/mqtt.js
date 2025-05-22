@@ -9,7 +9,8 @@ const deviceStates = {
     'Bedroom/Lights': 'OFF',
     'Kitchen/Lights': 'OFF',
     'Home/Sensor/Temperature': null,
-    'Home/Sensor/Humidity': null
+    'Home/Sensor/Humidity': null,
+    'esp32/rain_servo/state': 'CLOSE'  // Thêm trạng thái cửa sổ
 };
 
 // Lưu trữ các callback để emit sự kiện
@@ -68,10 +69,10 @@ const handleMessage = async (topic, message) => {
         } else {
             // Xác định nguồn điều khiển cho các thiết bị khác
             const source = determineSource(topic);
-            const device = topic;
+            const device = topic === 'esp32/rain_servo/state' ? 'Window' : topic;
 
             // Cập nhật trạng thái
-            deviceStates[device] = messageData;
+            deviceStates[topic] = messageData;
 
             // Lưu log
             await DeviceLog.create({
@@ -103,7 +104,8 @@ client.on('connect', () => {
         'Bedroom/Lights',
         'Kitchen/Lights',
         'Home/Sensor/Temperature',
-        'Home/Sensor/Humidity'
+        'Home/Sensor/Humidity',
+        'esp32/rain_servo/state'  // Thêm topic cửa sổ
     ];
 
     topics.forEach(topic => {

@@ -8,7 +8,7 @@ const deviceLogSchema = new mongoose.Schema({
     action: {
         type: String,
         required: true,
-        enum: ['ON', 'OFF']
+        enum: ['ON', 'OFF', 'OPEN', 'CLOSE']
     },
     performedBy: {
         type: String,

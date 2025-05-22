@@ -34,6 +34,16 @@ router.get('/Kitchen/Lights/status', isAuthenticated, (req, res) => {
     });
 });
 
+// Get window status
+router.get('/Window/status', isAuthenticated, (req, res) => {
+    const status = getDeviceState('esp32/rain_servo/state');
+    res.json({ 
+        status: 'ok',
+        device: 'Window',
+        state: status
+    });
+});
+
 // Get device logs with filters and pagination
 router.get('/LivingRoom/Lights/logs', isAuthenticated, async (req, res) => {
     try {
@@ -173,6 +183,145 @@ router.get('/LivingRoom/Lights/statistics', isAuthenticated, async (req, res) =>
     }
 });
 
+// Get device logs with filters and pagination
+router.get('/Window/logs', isAuthenticated, async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            startDate,
+            endDate,
+            performedBy,
+            method
+        } = req.query;
+
+        // Build filter
+        const filter = { device: 'Window' };
+        if (startDate || endDate) {
+            filter.timestamp = {};
+            if (startDate) filter.timestamp.$gte = new Date(startDate);
+            if (endDate) filter.timestamp.$lte = new Date(endDate);
+        }
+        if (performedBy) filter.performedBy = performedBy;
+        if (method) filter.method = method;
+
+        // Calculate pagination
+        const skip = (page - 1) * limit;
+
+        // Get total count for pagination
+        const total = await DeviceLog.countDocuments(filter);
+
+        // Get logs with pagination
+        const logs = await DeviceLog.find(filter)
+            .sort({ timestamp: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        res.json({ 
+            status: 'ok',
+            logs: logs,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'error',
+            message: error.message 
+        });
+    }
+});
+
+// Get window statistics
+router.get('/Window/statistics', isAuthenticated, async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        
+        // Build date filter
+        const dateFilter = {};
+        if (startDate || endDate) {
+            dateFilter.timestamp = {};
+            if (startDate) dateFilter.timestamp.$gte = new Date(startDate);
+            if (endDate) dateFilter.timestamp.$lte = new Date(endDate);
+        }
+
+        // Get total actions
+        const totalActions = await DeviceLog.countDocuments({
+            device: 'Window',
+            ...dateFilter
+        });
+
+        // Get actions by method
+        const actionsByMethod = await DeviceLog.aggregate([
+            {
+                $match: {
+                    device: 'Window',
+                    ...dateFilter
+                }
+            },
+            {
+                $group: {
+                    _id: '$method',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Get actions by user
+        const actionsByUser = await DeviceLog.aggregate([
+            {
+                $match: {
+                    device: 'Window',
+                    ...dateFilter
+                }
+            },
+            {
+                $group: {
+                    _id: '$performedBy',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Get actions by hour
+        const actionsByHour = await DeviceLog.aggregate([
+            {
+                $match: {
+                    device: 'Window',
+                    ...dateFilter
+                }
+            },
+            {
+                $group: {
+                    _id: { $hour: '$timestamp' },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { _id: 1 }
+            }
+        ]);
+
+        res.json({
+            status: 'ok',
+            statistics: {
+                totalActions,
+                actionsByMethod,
+                actionsByUser,
+                actionsByHour
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
+    }
+});
+
 // Control living room lights
 router.post('/LivingRoom/Lights/:action', isAuthenticated, async (req, res) => {
     const action = req.params.action.toUpperCase();
@@ -259,6 +408,38 @@ router.post('/Kitchen/Lights/:action', isAuthenticated, async (req, res) => {
         res.json({ 
             status: 'ok', 
             action: `lamp ${action.toLowerCase()}`,
+            state: action
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'error',
+            message: error.message 
+        });
+    }
+});
+
+// Control window
+router.post('/Window/:action', isAuthenticated, async (req, res) => {
+    const action = req.params.action.toUpperCase();
+    if (action !== 'OPEN' && action !== 'CLOSE') {
+        return res.status(400).json({ status: 'error', message: 'Invalid action' });
+    }
+    
+    try {
+        // Save log with detailed information
+        await DeviceLog.create({
+            device: 'Window',
+            action: action,
+            performedBy: req.session.username,
+            userAgent: req.headers['user-agent'],
+            ipAddress: req.ip,
+            method: 'API'
+        });
+
+        publish('esp32/rain_servo/state', action);
+        res.json({ 
+            status: 'ok', 
+            action: `window ${action.toLowerCase()}`,
             state: action
         });
     } catch (error) {

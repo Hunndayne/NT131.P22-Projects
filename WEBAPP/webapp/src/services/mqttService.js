@@ -171,5 +171,44 @@ export const mqttService = {
       console.error('Error getting humidity history:', error);
       throw error;
     }
+  },
+
+  // Mở cửa sổ
+  openWindow: async () => {
+    try {
+      const response = await axios.post(`${API_URL}/Window/OPEN`, {}, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error opening window:', error);
+      throw error;
+    }
+  },
+
+  // Đóng cửa sổ
+  closeWindow: async () => {
+    try {
+      const response = await axios.post(`${API_URL}/Window/CLOSE`, {}, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error closing window:', error);
+      throw error;
+    }
+  },
+
+  // Lấy trạng thái cửa sổ
+  getWindowStatus: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/Window/status`, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting window status:', error);
+      throw error;
+    }
   }
 }; 

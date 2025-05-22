@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaLightbulb, FaWater, FaGasPump, FaTemperatureHigh, FaTint, FaHome } from 'react-icons/fa';
+import { FaLightbulb, FaWater, FaGasPump, FaTemperatureHigh, FaTint, FaHome, FaWindowMaximize } from 'react-icons/fa';
 import { Line } from 'react-chartjs-2';
 import { mqttService } from '../services/mqttService';
 import axios from 'axios';
@@ -39,11 +39,15 @@ const Dashboard = () => {
     livingRoom: false
   });
 
+  // State cho trạng thái cửa sổ
+  const [window, setWindow] = useState(false);
+
   // State cho loading và error
   const [loading, setLoading] = useState({
     bedroom: false,
     kitchen: false,
-    livingRoom: false
+    livingRoom: false,
+    window: false
   });
   const [error, setError] = useState('');
 
@@ -83,6 +87,7 @@ const Dashboard = () => {
           // Lấy dữ liệu ban đầu sau khi xác nhận đã đăng nhập
           fetchLightStatuses();
           fetchSensorData();
+          fetchWindowStatus();
         } else {
           // Nếu có error hoặc không có message/username thì chưa đăng nhập
           console.log('Not logged in, redirecting to login page');
@@ -111,6 +116,7 @@ const Dashboard = () => {
     // Thiết lập interval để kiểm tra trạng thái mỗi giây
     const lightIntervalId = setInterval(() => {
       fetchLightStatuses();
+      fetchWindowStatus();
     }, 1000);
 
     // Thiết lập interval để cập nhật dữ liệu cảm biến mỗi 5 giây
@@ -149,6 +155,16 @@ const Dashboard = () => {
       });
     } catch (error) {
       console.error('Error fetching light statuses:', error);
+    }
+  };
+
+  // Hàm lấy trạng thái cửa sổ
+  const fetchWindowStatus = async () => {
+    try {
+      const windowStatus = await mqttService.getWindowStatus();
+      setWindow(windowStatus.state === 'OPEN');
+    } catch (error) {
+      console.error('Error fetching window status:', error);
     }
   };
 
@@ -260,6 +276,26 @@ const Dashboard = () => {
         kitchen: false,
         livingRoom: false
       });
+    }
+  };
+
+  // Hàm đóng/mở cửa sổ
+  const toggleWindow = async () => {
+    setLoading(prev => ({ ...prev, window: true }));
+    setError('');
+    try {
+      if (!window) {
+        await mqttService.openWindow();
+      } else {
+        await mqttService.closeWindow();
+      }
+      // Cập nhật lại trạng thái sau khi đóng/mở
+      await fetchWindowStatus();
+    } catch (error) {
+      console.error('Error toggling window:', error);
+      setError('Failed to control window. Please try again.');
+    } finally {
+      setLoading(prev => ({ ...prev, window: false }));
     }
   };
 
@@ -429,6 +465,36 @@ const Dashboard = () => {
                 } ${loading.livingRoom ? 'animate-spin' : ''}`} 
               />
               <span>Living Room Light</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Phần Window Control */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <FaWindowMaximize className="text-blue-500 text-2xl mr-2" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Window Control</h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            <button 
+              onClick={toggleWindow}
+              disabled={loading.window}
+              className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                window 
+                  ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 shadow-lg' 
+                  : 'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-200'
+              } ${loading.window ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <FaWindowMaximize 
+                className={`mr-2 transition-all duration-300 ${
+                  window 
+                    ? 'text-blue-500 animate-pulse' 
+                    : 'text-gray-500 dark:text-gray-400'
+                } ${loading.window ? 'animate-spin' : ''}`} 
+              />
+              <span>{window ? 'Close Window' : 'Open Window'}</span>
             </button>
           </div>
         </div>
