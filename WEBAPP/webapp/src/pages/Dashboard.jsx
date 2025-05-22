@@ -311,10 +311,10 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-300">Loading...</p>
         </div>
       </div>
     );
@@ -352,22 +352,22 @@ const Dashboard = () => {
 
         {/* Error message */}
         {error && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-300 rounded">
             {error}
           </div>
         )}
         
         {/* Phần 1: Đèn */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <FaLightbulb className="text-yellow-500 text-2xl mr-2 animate-pulse" />
-              <h2 className="text-xl font-semibold">Lights Control</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Lights Control</h2>
             </div>
             <button 
               onClick={toggleAllLights}
               disabled={Object.values(loading).some(state => state)}
-              className={`px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center shadow-lg hover:shadow-xl ${
+              className={`px-4 py-2 bg-yellow-500 dark:bg-yellow-600 text-white rounded-lg hover:bg-yellow-600 dark:hover:bg-yellow-700 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center shadow-lg hover:shadow-xl ${
                 Object.values(loading).some(state => state) ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -381,15 +381,15 @@ const Dashboard = () => {
               disabled={loading.bedroom}
               className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
                 lights.bedroom 
-                  ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
-                  : 'bg-blue-100 text-blue-800'
+                  ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 shadow-lg' 
+                  : 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200'
               } ${loading.bedroom ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <FaLightbulb 
                 className={`mr-2 transition-all duration-300 ${
                   lights.bedroom 
                     ? 'text-yellow-500 animate-pulse' 
-                    : 'text-blue-500'
+                    : 'text-blue-500 dark:text-blue-400'
                 } ${loading.bedroom ? 'animate-spin' : ''}`} 
               />
               <span>Bedroom Light</span>
@@ -399,15 +399,15 @@ const Dashboard = () => {
               disabled={loading.kitchen}
               className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
                 lights.kitchen 
-                  ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
-                  : 'bg-blue-100 text-blue-800'
+                  ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 shadow-lg' 
+                  : 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200'
               } ${loading.kitchen ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <FaLightbulb 
                 className={`mr-2 transition-all duration-300 ${
                   lights.kitchen 
                     ? 'text-yellow-500 animate-pulse' 
-                    : 'text-blue-500'
+                    : 'text-blue-500 dark:text-blue-400'
                 } ${loading.kitchen ? 'animate-spin' : ''}`} 
               />
               <span>Kitchen Light</span>
@@ -417,15 +417,15 @@ const Dashboard = () => {
               disabled={loading.livingRoom}
               className={`flex items-center justify-center p-4 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
                 lights.livingRoom 
-                  ? 'bg-yellow-100 text-yellow-800 shadow-lg' 
-                  : 'bg-blue-100 text-blue-800'
+                  ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 shadow-lg' 
+                  : 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200'
               } ${loading.livingRoom ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <FaLightbulb 
                 className={`mr-2 transition-all duration-300 ${
                   lights.livingRoom 
                     ? 'text-yellow-500 animate-pulse' 
-                    : 'text-blue-500'
+                    : 'text-blue-500 dark:text-blue-400'
                 } ${loading.livingRoom ? 'animate-spin' : ''}`} 
               />
               <span>Living Room Light</span>
@@ -436,28 +436,28 @@ const Dashboard = () => {
         {/* Phần 2: Cảm biến */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Water Sensor */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex items-center mb-4">
               <FaWater className="text-blue-500 text-2xl mr-2" />
-              <h2 className="text-xl font-semibold">Water Sensor</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Water Sensor</h2>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-lg">Status:</span>
-              <span className="px-3 py-1 rounded-full bg-green-100 text-green-800">
+              <span className="text-lg text-gray-800 dark:text-gray-200">Status:</span>
+              <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">
                 Normal
               </span>
             </div>
           </div>
 
           {/* Gas Sensor */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex items-center mb-4">
               <FaGasPump className="text-orange-500 text-2xl mr-2" />
-              <h2 className="text-xl font-semibold">Gas Sensor</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Gas Sensor</h2>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-lg">Status:</span>
-              <span className="px-3 py-1 rounded-full bg-green-100 text-green-800">
+              <span className="text-lg text-gray-800 dark:text-gray-200">Status:</span>
+              <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">
                 Safe
               </span>
             </div>
@@ -467,10 +467,10 @@ const Dashboard = () => {
         {/* Phần 3 & 4: Nhiệt độ và Độ ẩm */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Temperature */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex items-center mb-4">
               <FaTemperatureHigh className="text-red-500 text-2xl mr-2" />
-              <h2 className="text-xl font-semibold">Home Temperature</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Home Temperature</h2>
             </div>
             <div className="mb-4">
               <span className="text-3xl font-bold text-red-500">
@@ -483,10 +483,10 @@ const Dashboard = () => {
           </div>
 
           {/* Humidity */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex items-center mb-4">
               <FaTint className="text-blue-500 text-2xl mr-2" />
-              <h2 className="text-xl font-semibold">Home Humidity</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Home Humidity</h2>
             </div>
             <div className="mb-4">
               <span className="text-3xl font-bold text-blue-500">

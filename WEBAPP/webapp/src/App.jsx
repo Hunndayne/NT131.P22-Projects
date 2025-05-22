@@ -7,11 +7,12 @@ import Dashboard from './pages/Dashboard';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import Header from './components/Header';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Layout component that includes Header
 const Layout = ({ children }) => {
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
       <Header />
       {children}
     </div>
@@ -20,23 +21,25 @@ const Layout = ({ children }) => {
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+    <ThemeProvider>
+      <Router>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-        {/* Protected routes with Header */}
-        <Route path="/" element={<Layout><Home /></Layout>} />
-        <Route path="/home" element={<Layout><Home /></Layout>} />
-        <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-        <Route path="/notifications" element={<Layout><Notifications /></Layout>} />
-        <Route path="/profile" element={<Layout><Profile /></Layout>} />
+          {/* Protected routes with Header */}
+          <Route path="/" element={<Layout><Home /></Layout>} />
+          <Route path="/home" element={<Layout><Home /></Layout>} />
+          <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+          <Route path="/notifications" element={<Layout><Notifications /></Layout>} />
+          <Route path="/profile" element={<Layout><Profile /></Layout>} />
 
-        {/* Catch all - redirect to home */}
-        <Route path="*" element={<Navigate to="/home" replace />} />
-      </Routes>
-    </Router>
+          {/* Catch all - redirect to home */}
+          <Route path="*" element={<Navigate to="/home" replace />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 
