@@ -45,7 +45,7 @@ const Header = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">Smart Home</h1>
+            <a href="/home"><h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">Smart Home</h1></a>
           </div>
 
           {/* Desktop Navigation */}
