@@ -8,6 +8,7 @@ const Notifications = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [error, setError] = useState('');
+  const [gasStatus, setGasStatus] = useState(null);
 
   // Kiểm tra đăng nhập
   useEffect(() => {
@@ -20,6 +21,7 @@ const Notifications = () => {
         if (response.data.message === "User is logged in" && response.data.username) {
           setIsLoading(false);
           fetchNotifications();
+          fetchGasStatus();
         } else {
           navigate('/login');
         }
@@ -47,12 +49,22 @@ const Notifications = () => {
     }
   };
 
+  const fetchGasStatus = async () => {
+    try {
+      const res = await axios.get('http://localhost:3000/api/sensor/Kitchen/Gas/status', { withCredentials: true });
+      setGasStatus(res.data.hasGas); // lấy đúng giá trị từ res.data
+    } catch (err) {
+      setGasStatus(null);
+    }
+  };
+
   // Cập nhật thông báo mỗi 5 giây
   useEffect(() => {
     if (isLoading) return;
 
     const intervalId = setInterval(() => {
       fetchNotifications();
+      fetchGasStatus();
     }, 5000);
 
     return () => clearInterval(intervalId);
@@ -87,6 +99,17 @@ const Notifications = () => {
         };
     }
   };
+
+  const handleDeleteNotification = async (id) => {
+    try {
+      await axios.delete(`http://localhost:3000/api/notifications/${id}`, { withCredentials: true });
+      fetchNotifications();
+    } catch (error) {
+      setError('Không thể xóa thông báo.');
+    }
+  };
+
+  console.log('gasStatus:', gasStatus);
 
   if (isLoading) {
     return (
@@ -139,15 +162,39 @@ const Notifications = () => {
                     <div className="bg-green-50 dark:bg-green-900/50 rounded-lg p-4 flex items-center">
                       <FaWater className="text-2xl text-green-500 dark:text-green-400 mr-3" />
                       <div className="text-left">
-                        <h3 className="font-medium text-gray-800 dark:text-gray-200">Cảm biến nước</h3>
+                        <h3 className="font-medium text-gray-800 dark:text-gray-200">Cảm biến mưa</h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Trạng thái: Bình thường</p>
                       </div>
                     </div>
-                    <div className="bg-green-50 dark:bg-green-900/50 rounded-lg p-4 flex items-center">
-                      <FaGasPump className="text-2xl text-green-500 dark:text-green-400 mr-3" />
+                    <div className={`rounded-lg p-4 flex items-center ${
+                      gasStatus === null
+                        ? 'bg-gray-100 dark:bg-gray-700'
+                        : (gasStatus === true || gasStatus === 'true')
+                        ? 'bg-red-100 dark:bg-red-900/50'
+                        : 'bg-green-50 dark:bg-green-900/50'
+                    }`}>
+                      <FaGasPump className={`text-2xl mr-3 ${
+                        gasStatus === null
+                          ? 'text-gray-500 dark:text-gray-300'
+                          : (gasStatus === true || gasStatus === 'true')
+                          ? 'text-red-500 dark:text-red-400 animate-pulse'
+                          : 'text-green-500 dark:text-green-400'
+                      }`} />
                       <div className="text-left">
                         <h3 className="font-medium text-gray-800 dark:text-gray-200">Cảm biến khí gas</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Trạng thái: An toàn</p>
+                        <p className={`text-sm ${
+                          gasStatus === null
+                            ? 'text-gray-600 dark:text-gray-400'
+                            : (gasStatus === true || gasStatus === 'true')
+                            ? 'text-red-600 dark:text-red-300 font-bold'
+                            : 'text-green-600 dark:text-green-300'
+                        }`}>
+                          {gasStatus === null
+                            ? 'Đang kiểm tra...'
+                            : (gasStatus === true || gasStatus === 'true')
+                            ? 'Trạng thái: Nguy hiểm'
+                            : 'Trạng thái: An toàn'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -158,23 +205,23 @@ const Notifications = () => {
                 const style = getNotificationStyle(notification.type);
                 return (
                   <div
-                    key={index}
+                    key={notification._id || index}
                     className={`flex items-start p-4 rounded-lg border ${style.bgColor} ${style.borderColor} ${style.hoverColor} transition-all duration-300`}
                   >
                     <div className={`mr-4 ${style.textColor}`}>
                       {style.icon}
                     </div>
                     <div className="flex-1">
-                      <h3 className={`font-semibold ${style.textColor}`}>
-                        {notification.title}
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        {notification.message}
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                        {new Date(notification.timestamp).toLocaleString('vi-VN')}
-                      </p>
+                      <h3 className={`font-semibold ${style.textColor}`}>{notification.title || 'Thông báo'}</h3>
+                      <p className="text-gray-600 dark:text-gray-400 mt-1">{notification.message}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">{new Date(notification.timestamp).toLocaleString('vi-VN')}</p>
                     </div>
+                    <button
+                      onClick={() => handleDeleteNotification(notification._id)}
+                      className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                    >
+                      Xóa
+                    </button>
                     {notification.isUrgent && (
                       <FaExclamationTriangle className="text-red-500 dark:text-red-400 text-xl ml-4" />
                     )}

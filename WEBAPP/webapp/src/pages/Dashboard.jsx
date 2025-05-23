@@ -71,6 +71,8 @@ const Dashboard = () => {
   const [password, setPassword] = useState('');
   const [doorAction, setDoorAction] = useState(null); // 'open' or 'close'
 
+  const [gasStatus, setGasStatus] = useState(null); // null: loading, true: có gas, false: an toàn
+
   // Cập nhật thời gian mỗi giây
   useEffect(() => {
     const timer = setInterval(() => {
@@ -97,6 +99,7 @@ const Dashboard = () => {
           fetchSensorData();
           fetchWindowStatus();
           fetchDoorStatus();
+          fetchGasStatus();
         } else {
           // Nếu có error hoặc không có message/username thì chưa đăng nhập
           console.log('Not logged in, redirecting to login page');
@@ -132,6 +135,7 @@ const Dashboard = () => {
     // Thiết lập interval để cập nhật dữ liệu cảm biến mỗi 5 giây
     const sensorIntervalId = setInterval(() => {
       fetchSensorData();
+      fetchGasStatus();
     }, 5000);
 
     // Cleanup interval khi component unmount
@@ -216,6 +220,15 @@ const Dashboard = () => {
       });
     } catch (error) {
       console.error('Error fetching sensor data:', error);
+    }
+  };
+
+  const fetchGasStatus = async () => {
+    try {
+      const res = await mqttService.getGasSensorStatus();
+      setGasStatus(res.hasGas);
+    } catch (err) {
+      setGasStatus(null);
     }
   };
 
@@ -600,9 +613,19 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-lg text-gray-800 dark:text-gray-200">Status:</span>
-              <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">
-                Safe
-              </span>
+              {gasStatus === null ? (
+                <span className="px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                  Loading...
+                </span>
+              ) : gasStatus ? (
+                <span className="px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 font-bold animate-pulse">
+                  Danger
+                </span>
+              ) : (
+                <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">
+                  Safe
+                </span>
+              )}
             </div>
           </div>
         </div>

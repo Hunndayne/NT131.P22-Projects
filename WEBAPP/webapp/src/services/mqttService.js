@@ -249,5 +249,18 @@ export const mqttService = {
       console.error('Error closing door:', error);
       throw error;
     }
+  },
+
+  // Lấy trạng thái cảm biến khí gas
+  getGasSensorStatus: async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/api/sensor/Kitchen/Gas/status', {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting gas sensor status:', error);
+      throw error;
+    }
   }
 }; 

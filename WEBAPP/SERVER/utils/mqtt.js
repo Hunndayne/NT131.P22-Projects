@@ -2,6 +2,7 @@ const mqtt = require('mqtt');
 require('dotenv').config();
 const DeviceLog = require('../models/deviceLog.model');
 const SensorData = require('../models/sensorData.model');
+const Notification = require('../models/notification.model');
 
 // Lưu trạng thái các thiết bị
 const deviceStates = {
@@ -11,7 +12,8 @@ const deviceStates = {
     'Home/Sensor/Temperature': null,
     'Home/Sensor/Humidity': null,
     'esp32/rain_servo/state': 'CLOSE',  // Trạng thái cửa sổ
-    'esp32/servo_door/state': 'CLOSE'   // Trạng thái cửa ra vào
+    'esp32/servo_door/state': 'CLOSE',   // Trạng thái cửa ra vào
+    'Kitchen/Sensor/Gas': 'no_gas'  // Trạng thái cảm biến khí gas
 };
 
 // Lưu trữ các callback để emit sự kiện
@@ -72,6 +74,41 @@ const handleMessage = async (topic, message) => {
 
                 deviceStates[topic] = value;
             }
+        } else if (topic === 'Kitchen/Sensor/Gas') {
+            // Xử lý dữ liệu cảm biến khí gas
+            const gasStatus = messageData === 'gas_detected' ? 'gas_detected' : 'no_gas';
+            deviceStates[topic] = gasStatus;
+
+            // Lưu vào SensorData
+            await SensorData.create({
+                sensorType: 'GAS',
+                value: gasStatus === 'gas_detected' ? 1 : 0,
+                unit: 'STATE',
+                timestamp: new Date()
+            });
+
+            // Lưu log cho cả hai trạng thái
+            await DeviceLog.create({
+                device: 'Gas Sensor',
+                action: gasStatus === 'gas_detected' ? 'GAS_DETECTED' : 'NO_GAS',
+                performedBy: 'MQTT_DEVICE',
+                method: 'MQTT',
+                source: 'MQTT_DEVICE',
+                sourceDetails: gasStatus === 'gas_detected' ? 'Gas sensor detected gas leak' : 'Gas sensor reports no gas detected',
+                ipAddress: client.options.hostname
+            });
+
+            // Tạo thông báo khi phát hiện gas
+            if (gasStatus === 'gas_detected') {
+                await Notification.create({
+                    title: 'Gas Leak Detected!',
+                    message: 'Warning: Gas leak detected in the kitchen area. Please check immediately!',
+                    type: 'GAS_DETECTED',
+                    severity: 'HIGH',
+                    device: 'Kitchen Gas Sensor',
+                    timestamp: new Date()
+                });
+            }
         } else {
             // Xác định nguồn điều khiển cho các thiết bị khác
             const source = determineSource(topic);
@@ -104,7 +141,7 @@ const handleMessage = async (topic, message) => {
             callback(topic, messageData);
         });
     } catch (error) {
-        console.error('Error handling message:', error);
+        console.error('Error handling MQTT message:', error);
     }
 };
 
@@ -119,7 +156,8 @@ client.on('connect', () => {
         'Home/Sensor/Temperature',
         'Home/Sensor/Humidity',
         'esp32/rain_servo/state',    // Topic cửa sổ
-        'esp32/servo_door/state'     // Topic cửa ra vào
+        'esp32/servo_door/state',     // Topic cửa ra vào
+        'Kitchen/Sensor/Gas'          // Topic cảm biến khí gas
     ];
 
     topics.forEach(topic => {
