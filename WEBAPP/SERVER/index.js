@@ -14,9 +14,15 @@ const pushRoutes = require('./routes/push.routes');
 
 const app = express();
 const httpServer = createServer(app);
+
+// Cấu hình CORS và Socket.IO dựa trên môi trường
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? [process.env.CLIENT_URL] 
+    : ["http://localhost:5173"];
+
 const io = new Server(httpServer, {
     cors: {
-        origin: "http://localhost:5173",
+        origin: allowedOrigins,
         credentials: true
     }
 });
@@ -28,17 +34,26 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
     cors({
-        origin: "http://localhost:5173", 
+        origin: allowedOrigins,
         credentials: true,
     })
 );
 
+// Cấu hình session với các options bảo mật
 app.use(session({
-    secret: "your-secret-key-here",
-    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI || "mongodb://localhost:27017/your-database-name" }),
+    secret: process.env.SESSION_SECRET || "your-secret-key-here",
+    store: MongoStore.create({ 
+        mongoUrl: process.env.MONGO_URI || "mongodb://localhost:27017/your-database-name",
+        ttl: 24 * 60 * 60 // 1 day
+    }),
     resave: false,
-    saveUninitialized: true,
-    cookie: { httpOnly: true, sameSite: 'strict', maxAge: 1000 * 60 * 60 * 24 * 7 }
+    saveUninitialized: false,
+    cookie: { 
+        httpOnly: true, 
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+    }
 }));
 
 app.use('/api/auth', require('./routes/auth.routes'));
@@ -66,5 +81,6 @@ io.on('connection', (socket) => {
 });
 
 connectDB().then(() => {
-    httpServer.listen(3000, () => console.log("Server running at http://localhost:3000"));
+    const PORT = process.env.PORT || 3000;
+    httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 });
