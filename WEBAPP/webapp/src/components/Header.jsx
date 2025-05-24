@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { FaHome, FaChartLine, FaBell, FaUser, FaSignOutAlt, FaSun, FaMoon, FaBars, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
 import { useTheme } from '../context/ThemeContext';
+import { API_URLS } from '../config';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:3000/api/auth/logout', {}, {
+      await axios.post(API_URLS.AUTH.LOGOUT, {}, {
         withCredentials: true
       });
       navigate('/login');

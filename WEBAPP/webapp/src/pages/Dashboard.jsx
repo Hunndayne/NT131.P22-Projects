@@ -14,6 +14,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import { API_URLS } from '../config';
 
 // Đăng ký các components cần thiết cho Chart.js
 ChartJS.register(
@@ -85,9 +86,9 @@ const Dashboard = () => {
 
   // Kiểm tra đăng nhập
   useEffect(() => {
-    const checkLogin = async () => {
+    const checkAuth = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/auth/checklogin', {
+        const response = await axios.get(API_URLS.AUTH.CHECK_LOGIN, {
           withCredentials: true
         });
         
@@ -120,7 +121,7 @@ const Dashboard = () => {
       }
     };
 
-    checkLogin();
+    checkAuth();
   }, [navigate]);
 
   // Thiết lập interval sau khi đã xác nhận đăng nhập

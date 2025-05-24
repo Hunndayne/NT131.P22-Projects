@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_URLS } from '../config';
 
-const API_URL = 'http://localhost:3000/api/mqtt';
-const SENSOR_API_URL = 'http://localhost:3000/api/sensor';
+const API_URL = API_URLS.MQTT.BASE;
+const SENSOR_API_URL = API_URLS.MQTT.SENSOR;
 
 export const mqttService = {
   // Bật đèn phòng khách
@@ -254,7 +255,7 @@ export const mqttService = {
   // Lấy trạng thái cảm biến khí gas
   getGasSensorStatus: async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/sensor/Kitchen/Gas/status', {
+      const response = await axios.get(API_URLS.SENSOR.GAS_STATUS, {
         withCredentials: true
       });
       return response.data;
@@ -267,7 +268,7 @@ export const mqttService = {
   // Lấy trạng thái cảm biến mưa
   getRainSensorStatus: async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/sensor/rain/status', {
+      const response = await axios.get(API_URLS.SENSOR.RAIN_STATUS, {
         withCredentials: true
       });
       return response.data;

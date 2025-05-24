@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaHome, FaDoorOpen, FaUser, FaBell } from 'react-icons/fa';
 import axios from 'axios';
+import { API_URLS } from '../config';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -32,9 +33,9 @@ const Home = () => {
 
   // Kiểm tra đăng nhập
   useEffect(() => {
-    const checkLogin = async () => {
+    const checkAuth = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/auth/checklogin', {
+        const response = await axios.get(API_URLS.AUTH.CHECK_LOGIN, {
           withCredentials: true
         });
         
@@ -52,7 +53,7 @@ const Home = () => {
       }
     };
 
-    checkLogin();
+    checkAuth();
   }, [navigate]);
 
   if (isLoading) {

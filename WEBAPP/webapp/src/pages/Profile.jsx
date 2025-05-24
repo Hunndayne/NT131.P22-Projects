@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaUser, FaEnvelope, FaKey, FaSave, FaTimes, FaEdit } from 'react-icons/fa';
 import axios from 'axios';
+import { API_URLS } from '../config';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -25,9 +26,9 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserInfo = async () => {
+    const fetchUserData = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/user', {
+        const response = await axios.get(API_URLS.USER.PROFILE, {
           withCredentials: true
         });
         
@@ -47,7 +48,7 @@ const Profile = () => {
       }
     };
 
-    fetchUserInfo();
+    fetchUserData();
   }, [navigate]);
 
   const handleChange = (e) => {
@@ -57,13 +58,13 @@ const Profile = () => {
     });
   };
 
-  const handleProfileSubmit = async (e) => {
+  const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
     try {
-      const response = await axios.put('http://localhost:3000/api/user', {
+      const response = await axios.put(API_URLS.USER.UPDATE, {
         username: formData.username,
         email: formData.email,
         name: formData.name,
@@ -102,7 +103,7 @@ const Profile = () => {
     }
 
     try {
-      const response = await axios.put('http://localhost:3000/api/user', {
+      const response = await axios.put(API_URLS.USER.UPDATE, {
         password: formData.newPassword,
         currentPassword: formData.currentPassword
       }, {
@@ -208,7 +209,7 @@ const Profile = () => {
                 {success}
               </div>
             )}
-            <form onSubmit={handleProfileSubmit}>
+            <form onSubmit={handleUpdateProfile}>
               <div className="space-y-4">
                 <div>
                   <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">

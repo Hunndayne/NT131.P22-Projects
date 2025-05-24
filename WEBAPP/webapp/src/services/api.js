@@ -1,4 +1,6 @@
-const API_BASE_URL = ' http://192.168.1.31:3000';
+import { API_URLS } from '../config';
+
+const API_BASE_URL = API_URLS.BASE;
 
 export const api = {
   async get(endpoint) {

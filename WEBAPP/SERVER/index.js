@@ -16,28 +16,42 @@ const app = express();
 const httpServer = createServer(app);
 
 // Cấu hình CORS và Socket.IO dựa trên môi trường
-const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? [process.env.CLIENT_URL] 
-    : ["http://localhost:5173"];
+const allowedOrigins = [
+    process.env.CLIENT_URL,
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "http://192.168.1.31:5173",
+    "http://192.168.1.31:4173"
+].filter(Boolean); // Loại bỏ các giá trị undefined
 
 const io = new Server(httpServer, {
     cors: {
         origin: allowedOrigins,
-        credentials: true
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        credentials: true,
+        allowedHeaders: ["Content-Type", "Authorization"]
     }
 });
 
-app.use('/api/push', pushRoutes);
+// Cấu hình CORS middleware
+app.use(cors({
+    origin: function(origin, callback) {
+        // Cho phép requests không có origin (như mobile apps, curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-app.use(
-    cors({
-        origin: allowedOrigins,
-        credentials: true,
-    })
-);
 
 // Cấu hình session với các options bảo mật
 app.use(session({
@@ -80,7 +94,16 @@ io.on('connection', (socket) => {
     });
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something broke!' });
+});
+
 connectDB().then(() => {
     const PORT = process.env.PORT || 3000;
-    httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    httpServer.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log('Allowed origins:', allowedOrigins);
+    });
 });

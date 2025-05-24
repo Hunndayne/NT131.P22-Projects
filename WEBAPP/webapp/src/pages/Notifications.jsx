@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaWater, FaGasPump, FaExclamationTriangle, FaCheckCircle, FaBell, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
+import { API_URLS } from '../config';
 
 const Notifications = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const Notifications = () => {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/auth/checklogin', {
+        const response = await axios.get(API_URLS.AUTH.CHECK_LOGIN, {
           withCredentials: true
         });
         
@@ -41,7 +42,7 @@ const Notifications = () => {
   // Lấy thông báo từ server
   const fetchNotifications = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/notifications', {
+      const response = await axios.get(API_URLS.NOTIFICATIONS.BASE, {
         withCredentials: true
       });
       setNotifications(response.data);
@@ -53,8 +54,8 @@ const Notifications = () => {
 
   const fetchGasStatus = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/sensor/Kitchen/Gas/status', { withCredentials: true });
-      setGasStatus(res.data.hasGas); // lấy đúng giá trị từ res.data
+      const res = await axios.get(API_URLS.SENSOR.GAS_STATUS, { withCredentials: true });
+      setGasStatus(res.data.hasGas);
     } catch (err) {
       setGasStatus(null);
     }
@@ -104,7 +105,9 @@ const Notifications = () => {
 
   const handleDeleteNotification = async (id) => {
     try {
-      await axios.delete(`http://localhost:3000/api/notifications/${id}`, { withCredentials: true });
+      await axios.delete(`${API_URLS.NOTIFICATIONS.BASE}/${id}`, {
+        withCredentials: true
+      });
       fetchNotifications();
     } catch (error) {
       setError('Không thể xóa thông báo.');
@@ -118,7 +121,9 @@ const Notifications = () => {
 
     setIsDeletingAll(true);
     try {
-      await axios.delete('http://localhost:3000/api/notifications/all', { withCredentials: true });
+      await axios.delete(API_URLS.NOTIFICATIONS.ALL, {
+        withCredentials: true
+      });
       setNotifications([]);
       setSuccess('Đã xóa tất cả thông báo');
     } catch (error) {
