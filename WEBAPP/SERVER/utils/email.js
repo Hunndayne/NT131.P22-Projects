@@ -11,9 +11,23 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+// Track last gas notification time
+let lastGasNotificationTime = 0;
+const GAS_NOTIFICATION_INTERVAL = 60000; // 1 minute in milliseconds
+
 // Function to send email notification to all users
 const sendEmailNotification = async (subject, message) => {
     try {
+        // Check if this is a gas notification and if enough time has passed
+        if (subject.includes('GAS') || subject.includes('Khí gas')) {
+            const currentTime = Date.now();
+            if (currentTime - lastGasNotificationTime < GAS_NOTIFICATION_INTERVAL) {
+                console.log('Skipping gas notification - too soon since last notification');
+                return false;
+            }
+            lastGasNotificationTime = currentTime;
+        }
+
         // Get all users' emails
         console.log('Attempting to find users in collection:', User.collection.name);
         const users = await User.find({}, 'email');
