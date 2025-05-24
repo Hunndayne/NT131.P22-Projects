@@ -4,6 +4,7 @@ const DeviceLog = require('../models/deviceLog.model');
 const SensorData = require('../models/sensorData.model');
 const Notification = require('../models/notification.model');
 const { sendPushToAllUsers } = require('./push');
+const { sendEmailNotification } = require('./email');
 // Lưu trạng thái các thiết bị
 const deviceStates = {
     'LivingRoom/Lights': 'OFF',
@@ -101,18 +102,30 @@ const handleMessage = async (topic, message) => {
 
             // Tạo thông báo khi phát hiện gas
             if (gasStatus === 'gas_detected') {
+                const notificationTitle = 'Gas Leak Detected!';
+                const notificationMessage = 'Warning: Gas leak detected in the kitchen area. Please check immediately!';
+                
+                // Create notification in database
                 await Notification.create({
-                    title: 'Gas Leak Detected!',
-                    message: 'Warning: Gas leak detected in the kitchen area. Please check immediately!',
+                    title: notificationTitle,
+                    message: notificationMessage,
                     type: 'GAS_DETECTED',
                     severity: 'HIGH',
                     device: 'Kitchen Gas Sensor',
                     timestamp: new Date()
                 });
+
+                // Send push notification
                 await sendPushToAllUsers({
-                    title: 'Gas Leak Detected!',
-                    message: 'Warning: Gas leak detected in the kitchen area. Please check immediately!'
+                    title: notificationTitle,
+                    message: notificationMessage
                 });
+
+                // Send email notification
+                await sendEmailNotification(
+                    notificationTitle,
+                    notificationMessage
+                );
             }
         } else if (topic === 'esp32/rain/detected') {
             // Xử lý dữ liệu cảm biến mưa
