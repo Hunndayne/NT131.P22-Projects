@@ -13,7 +13,8 @@ const deviceStates = {
     'Home/Sensor/Humidity': null,
     'esp32/rain_servo/state': 'CLOSE',  // Trạng thái cửa sổ
     'esp32/servo_door/state': 'CLOSE',   // Trạng thái cửa ra vào
-    'Kitchen/Sensor/Gas': 'no_gas'  // Trạng thái cảm biến khí gas
+    'Kitchen/Sensor/Gas': 'no_gas',  // Trạng thái cảm biến khí gas
+    'esp32/rain/detected': 'DRY'  // Trạng thái cảm biến mưa
 };
 
 // Lưu trữ các callback để emit sự kiện
@@ -113,6 +114,45 @@ const handleMessage = async (topic, message) => {
                     message: 'Warning: Gas leak detected in the kitchen area. Please check immediately!'
                 });
             }
+        } else if (topic === 'esp32/rain/detected') {
+            // Xử lý dữ liệu cảm biến mưa
+            const rainStatus = messageData === 'RAINING' ? 'RAINING' : 'DRY';
+            deviceStates[topic] = rainStatus;
+
+            // Lưu vào SensorData
+            await SensorData.create({
+                sensorType: 'RAIN',
+                value: rainStatus === 'RAINING' ? 1 : 0,
+                unit: 'STATE',
+                timestamp: new Date()
+            });
+
+            // Lưu log
+            await DeviceLog.create({
+                device: 'Rain Sensor',
+                action: rainStatus === 'RAINING' ? 'RAIN_DETECTED' : 'NO_RAIN',
+                performedBy: 'MQTT_DEVICE',
+                method: 'MQTT',
+                source: 'MQTT_DEVICE',
+                sourceDetails: rainStatus === 'RAINING' ? 'Rain sensor detected rain' : 'Rain sensor reports no rain',
+                ipAddress: client.options.hostname
+            });
+
+            // Tạo thông báo khi phát hiện mưa
+            if (rainStatus === 'RAINING') {
+                await Notification.create({
+                    title: 'Rain Detected!',
+                    message: 'Warning: Rain has been detected. Consider closing windows!',
+                    type: 'RAIN_DETECTED',
+                    severity: 'MEDIUM',
+                    device: 'Rain Sensor',
+                    timestamp: new Date()
+                });
+                await sendPushToAllUsers({
+                    title: 'Rain Detected!',
+                    message: 'Warning: Rain has been detected. Consider closing windows!'
+                });
+            }
         } else {
             // Xác định nguồn điều khiển cho các thiết bị khác
             const source = determineSource(topic);
@@ -161,7 +201,8 @@ client.on('connect', () => {
         'Home/Sensor/Humidity',
         'esp32/rain_servo/state',    // Topic cửa sổ
         'esp32/servo_door/state',     // Topic cửa ra vào
-        'Kitchen/Sensor/Gas'          // Topic cảm biến khí gas
+        'Kitchen/Sensor/Gas',          // Topic cảm biến khí gas
+        'esp32/rain/detected'          // Topic cảm biến mưa
     ];
 
     topics.forEach(topic => {

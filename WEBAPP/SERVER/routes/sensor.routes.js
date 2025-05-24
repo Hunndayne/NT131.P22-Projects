@@ -121,4 +121,55 @@ router.get('/Kitchen/Gas/history', isAuthenticated, async (req, res) => {
     }
 });
 
+// Get rain sensor status
+router.get('/rain/status', isAuthenticated, async (req, res) => {
+    try {
+        // Lấy dữ liệu mới nhất từ database
+        const latestRainData = await SensorData.findOne({ sensorType: 'RAIN' })
+            .sort({ timestamp: -1 });
+
+        // Nếu không có dữ liệu trong database, lấy từ device state
+        if (!latestRainData) {
+            const status = getDeviceState('esp32/rain/detected');
+            return res.json({ 
+                status: 'ok',
+                isRaining: status === 'RAINING'
+            });
+        }
+
+        // Trả về dữ liệu từ database
+        res.json({ 
+            status: 'ok',
+            isRaining: latestRainData.value === 1
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'error',
+            message: error.message 
+        });
+    }
+});
+
+// Get rain sensor history
+router.get('/rain/history', isAuthenticated, async (req, res) => {
+    try {
+        const { startDate, endDate, limit = 100 } = req.query;
+        
+        const query = { sensorType: 'RAIN' };
+        if (startDate || endDate) {
+            query.timestamp = {};
+            if (startDate) query.timestamp.$gte = new Date(startDate);
+            if (endDate) query.timestamp.$lte = new Date(endDate);
+        }
+
+        const data = await SensorData.find(query)
+            .sort({ timestamp: -1 })
+            .limit(parseInt(limit));
+
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router; 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaWater, FaGasPump, FaExclamationTriangle, FaCheckCircle, FaBell } from 'react-icons/fa';
+import { FaWater, FaGasPump, FaExclamationTriangle, FaCheckCircle, FaBell, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 
 const Notifications = () => {
@@ -9,6 +9,8 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [error, setError] = useState('');
   const [gasStatus, setGasStatus] = useState(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [success, setSuccess] = useState('');
 
   // Kiểm tra đăng nhập
   useEffect(() => {
@@ -73,7 +75,7 @@ const Notifications = () => {
   // Hàm xác định icon và màu sắc cho từng loại thông báo
   const getNotificationStyle = (type) => {
     switch (type) {
-      case 'water':
+      case 'RAIN_DETECTED':
         return {
           icon: <FaWater className="text-3xl" />,
           bgColor: 'bg-blue-50 dark:bg-blue-900/50',
@@ -81,7 +83,7 @@ const Notifications = () => {
           borderColor: 'border-blue-200 dark:border-blue-800',
           hoverColor: 'hover:bg-blue-100 dark:hover:bg-blue-900'
         };
-      case 'gas':
+      case 'GAS_DETECTED':
         return {
           icon: <FaGasPump className="text-3xl" />,
           bgColor: 'bg-red-50 dark:bg-red-900/50',
@@ -109,6 +111,23 @@ const Notifications = () => {
     }
   };
 
+  const handleDeleteAllNotifications = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa tất cả thông báo?')) {
+      return;
+    }
+
+    setIsDeletingAll(true);
+    try {
+      await axios.delete('http://localhost:3000/api/notifications/all', { withCredentials: true });
+      setNotifications([]);
+      setSuccess('Đã xóa tất cả thông báo');
+    } catch (error) {
+      setError('Không thể xóa tất cả thông báo. Vui lòng thử lại sau.');
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
   console.log('gasStatus:', gasStatus);
 
   if (isLoading) {
@@ -129,18 +148,46 @@ const Notifications = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200">Thông báo</h1>
-            <button
-              onClick={() => navigate('/home')}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              Quay lại
-            </button>
+            <div className="space-x-2">
+              {notifications.length > 0 && (
+                <button
+                  onClick={handleDeleteAllNotifications}
+                  disabled={isDeletingAll}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDeletingAll ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-2"></div>
+                      Đang xóa...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash className="inline-block mr-2" />
+                      Xóa tất cả
+                    </>
+                  )}
+                </button>
+              )}
+              <button
+                onClick={() => navigate('/home')}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Quay lại
+              </button>
+            </div>
           </div>
 
           {/* Error message */}
           {error && (
             <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg">
               {error}
+            </div>
+          )}
+
+          {/* Success message */}
+          {success && (
+            <div className="mb-6 p-4 bg-green-100 dark:bg-green-900/50 border border-green-400 dark:border-green-800 text-green-700 dark:text-green-300 rounded-lg">
+              {success}
             </div>
           )}
 

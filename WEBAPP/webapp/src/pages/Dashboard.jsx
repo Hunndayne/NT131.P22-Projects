@@ -72,6 +72,7 @@ const Dashboard = () => {
   const [doorAction, setDoorAction] = useState(null); // 'open' or 'close'
 
   const [gasStatus, setGasStatus] = useState(null); // null: loading, true: có gas, false: an toàn
+  const [rainStatus, setRainStatus] = useState(null); // null: loading, true: đang mưa, false: không mưa
 
   // Cập nhật thời gian mỗi giây
   useEffect(() => {
@@ -100,6 +101,7 @@ const Dashboard = () => {
           fetchWindowStatus();
           fetchDoorStatus();
           fetchGasStatus();
+          fetchRainStatus();
         } else {
           // Nếu có error hoặc không có message/username thì chưa đăng nhập
           console.log('Not logged in, redirecting to login page');
@@ -136,6 +138,7 @@ const Dashboard = () => {
     const sensorIntervalId = setInterval(() => {
       fetchSensorData();
       fetchGasStatus();
+      fetchRainStatus();
     }, 5000);
 
     // Cleanup interval khi component unmount
@@ -229,6 +232,15 @@ const Dashboard = () => {
       setGasStatus(res.hasGas);
     } catch (err) {
       setGasStatus(null);
+    }
+  };
+
+  const fetchRainStatus = async () => {
+    try {
+      const res = await mqttService.getRainSensorStatus();
+      setRainStatus(res.isRaining);
+    } catch (err) {
+      setRainStatus(null);
     }
   };
 
@@ -591,17 +603,27 @@ const Dashboard = () => {
 
         {/* Phần 2: Cảm biến */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* Water Sensor */}
+          {/* Rain Sensor */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex items-center mb-4">
               <FaWater className="text-blue-500 text-2xl mr-2" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Water Sensor</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Rain Sensor</h2>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-lg text-gray-800 dark:text-gray-200">Status:</span>
-              <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">
-                Normal
-              </span>
+              {rainStatus === null ? (
+                <span className="px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                  Loading...
+                </span>
+              ) : rainStatus ? (
+                <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 font-bold">
+                  Raining
+                </span>
+              ) : (
+                <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">
+                  Dry
+                </span>
+              )}
             </div>
           </div>
 

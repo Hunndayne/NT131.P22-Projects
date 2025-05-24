@@ -262,5 +262,18 @@ export const mqttService = {
       console.error('Error getting gas sensor status:', error);
       throw error;
     }
+  },
+
+  // Lấy trạng thái cảm biến mưa
+  getRainSensorStatus: async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/api/sensor/rain/status', {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting rain sensor status:', error);
+      throw error;
+    }
   }
 }; 

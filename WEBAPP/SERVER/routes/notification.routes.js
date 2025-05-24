@@ -18,6 +18,43 @@ router.get('/', isAuthenticated, async (req, res) => {
     }
 });
 
+// Xóa tất cả thông báo cho user hiện tại
+router.delete('/all', isAuthenticated, async (req, res) => {
+    try {
+        if (!req.session.username) {
+            return res.status(400).json({ message: 'Invalid user session' });
+        }
+
+        // Lấy tất cả thông báo chưa bị xóa bởi user hiện tại
+        const notifications = await Notification.find({
+            deletedBy: { $ne: req.session.username }
+        });
+
+        if (notifications.length === 0) {
+            return res.json({ message: 'No notifications to delete' });
+        }
+
+        // Thêm user vào danh sách đã xóa của mỗi thông báo
+        const updatePromises = notifications.map(notification => {
+            if (!notification.deletedBy.includes(req.session.username)) {
+                notification.deletedBy.push(req.session.username);
+                return notification.save();
+            }
+            return Promise.resolve();
+        });
+
+        await Promise.all(updatePromises);
+
+        res.json({ 
+            message: 'All notifications deleted for current user',
+            deletedCount: notifications.length
+        });
+    } catch (error) {
+        console.error('Error deleting all notifications:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 // Đánh dấu thông báo đã đọc
 router.post('/:id/read', isAuthenticated, async (req, res) => {
     try {
@@ -60,31 +97,6 @@ router.delete('/:id', isAuthenticated, async (req, res) => {
         }
 
         res.json({ message: 'Notification deleted for current user' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// Xóa tất cả thông báo cho user hiện tại
-router.delete('/', isAuthenticated, async (req, res) => {
-    try {
-        if (!req.session.username) {
-            return res.status(400).json({ message: 'Invalid user session' });
-        }
-        // Lấy tất cả thông báo chưa bị xóa bởi user hiện tại
-        const notifications = await Notification.find({
-            deletedBy: { $ne: req.session.username }
-        });
-
-        // Thêm user vào danh sách đã xóa của mỗi thông báo
-        for (const notification of notifications) {
-            if (!notification.deletedBy.includes(req.session.username)) {
-                notification.deletedBy.push(req.session.username);
-                await notification.save();
-            }
-        }
-
-        res.json({ message: 'All notifications deleted for current user' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

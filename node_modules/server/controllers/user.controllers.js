@@ -1,4 +1,4 @@
-const { getDB } = require('../utils/db');
+const mongoose = require('mongoose');
 const { ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
 
@@ -19,68 +19,88 @@ exports.updateUser = async (req, res) => {
         return res.status(401).json({ error: "Unauthorized or invalid session" });
     }
 
-    const { Username, Email, Name, Password, currentPassword } = req.body;
+    const { username, email, name, password, currentPassword } = req.body;
     const updates = {};
 
-    // check currentPassword
-    const requireAuthFields = [Username, Email, Password, Name].some(field => field);
+    // Kiểm tra nếu có thay đổi thông tin nhạy cảm
+    const requireAuthFields = [username, email, password, name].some(field => field);
     if (requireAuthFields && !currentPassword) {
         return res.status(400).json({ error: "Current password is required to update sensitive info" });
     }
 
-    // Nếu cần, thì kiểm tra mật khẩu hiện tại
+    // Kiểm tra mật khẩu hiện tại nếu cần
     if (requireAuthFields) {
-        const user = await getDB().collection('user').findOne({ _id: new ObjectId(userId) });
+        const user = await mongoose.connection.collection('user').findOne({ _id: new ObjectId(userId) });
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        const isPasswordMatch = await bcrypt.compare(currentPassword, user.Password);
-        if (!isPasswordMatch) {
-            return res.status(403).json({ error: "Current password is incorrect" });
+        if (!user.password) {
+            return res.status(400).json({ error: "User has no password set" });
+        }
+
+        try {
+            const isPasswordMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isPasswordMatch) {
+                return res.status(403).json({ error: "Current password is incorrect" });
+            }
+        } catch (error) {
+            console.error('Password comparison error:', error);
+            return res.status(500).json({ error: "Error verifying password" });
         }
     }
 
-    // kiểm tra thông tin đầu vào
-    if (Username) {
+    // Kiểm tra và cập nhật username
+    if (username) {
         const usernameRegex = /^[A-Za-z0-9_]+$/;
-        if (!usernameRegex.test(Username)) {
+        if (!usernameRegex.test(username)) {
             return res.status(400).json({ error: "Username must not contain special characters" });
         }
-        updates.Username = Username;
+        updates.username = username;
     }
 
-    if (Email) {
+    // Kiểm tra và cập nhật email
+    if (email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(Email)) {
+        if (!emailRegex.test(email)) {
             return res.status(400).json({ error: "Invalid email format" });
         }
-        updates.Email = Email;
+        updates.email = email;
     }
 
-    if (Name) {
-        updates.Name = Name;
+    // Cập nhật tên
+    if (name) {
+        updates.name = name;
     }
 
-    if (Password) {
-        if (Password.length < 8) {
+    // Cập nhật mật khẩu
+    if (password) {
+        if (password.length < 8) {
             return res.status(400).json({ error: "Password must be at least 8 characters long" });
         }
-        updates.Password = await bcrypt.hash(Password, 10);
+        updates.password = await bcrypt.hash(password, 10);
     }
 
     if (Object.keys(updates).length === 0) {
         return res.status(400).json({ error: "No valid fields to update" });
     }
 
-    const result = await getDB().collection('user').updateOne(
-        { _id: new ObjectId(userId) },
-        { $set: updates }
-    );
+    try {
+        const result = await mongoose.connection.collection('user').updateOne(
+            { _id: new ObjectId(userId) },
+            { $set: updates }
+        );
 
-    if (result.matchedCount === 0) {
-        return res.status(404).json({ error: "User not found" });
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        return res.status(200).json({ 
+            message: "User updated successfully",
+            updatedFields: Object.keys(updates)
+        });
+    } catch (error) {
+        console.error('Update error:', error);
+        return res.status(500).json({ error: "Error updating user information" });
     }
-
-    return res.status(200).json({ message: "User updated successfully." });
 };
 
 
@@ -91,14 +111,21 @@ exports.userinfo = async (req, res) => {
         return res.status(401).json({ error: "Not logged in" });
     }
 
-    const user = await getDB().collection('user').findOne(
+    const user = await mongoose.connection.collection('user').findOne(
         { _id: new ObjectId(userId) },
-        { projection: { Password: 0, _id:0 } }
+        { projection: { password: 0, _id: 0 } }
     );
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    return res.status(200).json(user);
+    const userInfo = {
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        role: user.role
+    };
+
+    return res.status(200).json(userInfo);
 };
 
 
@@ -106,7 +133,7 @@ exports.deleteUser = async (req, res) => {
     const { UserID } = req.body;
     if (!UserID || !ObjectId.isValid(UserID)) return res.status(400).json({ error: "Invalid UserID" });
 
-    const result = await getDB().collection('user').deleteOne({ _id: new ObjectId(UserID) });
+    const result = await mongoose.connection.collection('user').deleteOne({ _id: new ObjectId(UserID) });
     if (result.deletedCount === 0) return res.status(404).json({ error: "User not found" });
 
     return res.status(200).json({ message: "User deleted successfully." });

@@ -4,7 +4,7 @@ const sensorDataSchema = new mongoose.Schema({
     sensorType: {
         type: String,
         required: true,
-        enum: ['TEMPERATURE', 'HUMIDITY', 'GAS']
+        enum: ['TEMPERATURE', 'HUMIDITY', 'GAS', 'RAIN']
     },
     value: {
         type: Number,

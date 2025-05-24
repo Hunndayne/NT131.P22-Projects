@@ -12,7 +12,7 @@ const notificationSchema = new mongoose.Schema({
     type: {
         type: String,
         required: true,
-        enum: ['GAS_DETECTED', 'SYSTEM', 'DEVICE']
+        enum: ['GAS_DETECTED', 'RAIN_DETECTED', 'SYSTEM', 'DEVICE']
     },
     severity: {
         type: String,
