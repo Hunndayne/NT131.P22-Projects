@@ -10,6 +10,7 @@ const { Server } = require('socket.io');
 const { onStateChange } = require('./utils/mqtt');
 const sensorRoutes = require('./routes/sensor.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const pushRoutes = require('./routes/push.routes');
 
 const app = express();
 const httpServer = createServer(app);
@@ -19,6 +20,8 @@ const io = new Server(httpServer, {
         credentials: true
     }
 });
+
+app.use('/api/push', pushRoutes);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

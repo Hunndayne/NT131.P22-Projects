@@ -3,7 +3,7 @@ require('dotenv').config();
 const DeviceLog = require('../models/deviceLog.model');
 const SensorData = require('../models/sensorData.model');
 const Notification = require('../models/notification.model');
-
+const { sendPushToAllUsers } = require('./push');
 // Lưu trạng thái các thiết bị
 const deviceStates = {
     'LivingRoom/Lights': 'OFF',
@@ -107,6 +107,10 @@ const handleMessage = async (topic, message) => {
                     severity: 'HIGH',
                     device: 'Kitchen Gas Sensor',
                     timestamp: new Date()
+                });
+                await sendPushToAllUsers({
+                    title: 'Gas Leak Detected!',
+                    message: 'Warning: Gas leak detected in the kitchen area. Please check immediately!'
                 });
             }
         } else {
