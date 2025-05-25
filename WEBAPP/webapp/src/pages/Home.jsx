@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaHome, FaDoorOpen, FaUser, FaBell } from 'react-icons/fa';
+import { FaHome, FaDoorOpen, FaUser, FaBell, FaCloudRain, FaCloud, FaSun } from 'react-icons/fa';
 import axios from 'axios';
 import { API_URLS } from '../config';
 
@@ -10,6 +10,8 @@ const Home = () => {
   const [username, setUsername] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [greeting, setGreeting] = useState('');
+  const [weather, setWeather] = useState(null);
+  const [coords, setCoords] = useState(null);
 
   // Cập nhật thời gian và lời chào mỗi giây
   useEffect(() => {
@@ -56,6 +58,48 @@ const Home = () => {
     checkAuth();
   }, [navigate]);
 
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCoords({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude
+          });
+        },
+        (error) => {
+          setCoords(null); // fallback nếu user từ chối
+        }
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const apiKey = import.meta.env.VITE_WEATHER_API_KEY;
+        let url = '';
+        if (coords) {
+          url = `https://api.openweathermap.org/data/2.5/forecast?lat=${coords.lat}&lon=${coords.lon}&units=metric&lang=vi&appid=${apiKey}`;
+        } else {
+          // fallback: Hà Nội
+          url = `https://api.openweathermap.org/data/2.5/forecast?q=Hanoi&units=metric&lang=vi&appid=${apiKey}`;
+        }
+        const res = await fetch(url);
+        const data = await res.json();
+        const daily = data.list.filter(item => item.dt_txt.includes('12:00:00')).slice(0, 5);
+        setWeather({
+          city: data.city.name,
+          current: data.list[0],
+          daily,
+        });
+      } catch (err) {
+        setWeather(null);
+      }
+    };
+    fetchWeather();
+  }, [coords]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -71,6 +115,8 @@ const Home = () => {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900">
       {/* Welcome Section */}
       <div className="container mx-auto px-4 py-8">
+        
+        {/* Block chức năng */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
           <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-8 text-white">
             <div className="flex items-center justify-between">
@@ -97,10 +143,42 @@ const Home = () => {
               <FaHome className="text-8xl opacity-50" />
             </div>
           </div>
-
-          {/* Quick Actions */}
+          
           <div className="p-8">
             <h2 className="text-2xl font-semibold mb-6 text-gray-800 dark:text-gray-200">Chào mừng về nhà!</h2>
+                        {/* Block thời tiết */}
+        {weather && (
+          <div className="bg-gray-900 text-white rounded-xl p-6 mt-8 max-w-xl mx-auto">
+            <div className="flex items-center mb-4">
+              <FaCloudRain className="text-3xl mr-3" />
+              <div>
+                <div className="text-lg font-semibold">{weather.city}</div>
+                <div className="text-2xl font-bold">{Math.round(weather.current.main.temp)}°C</div>
+                <div className="capitalize">{weather.current.weather[0].description}</div>
+              </div>
+            </div>
+            <div className="flex justify-between mt-4">
+              {weather.daily.map((item, idx) => (
+                <div key={idx} className="flex flex-col items-center">
+                  <div className="text-sm font-medium">
+                    {new Date(item.dt_txt).toLocaleDateString('vi-VN', { weekday: 'short' })}
+                  </div>
+                  <div>
+                    {item.weather[0].main === 'Rain' ? (
+                      <FaCloudRain className="text-xl" />
+                    ) : item.weather[0].main === 'Clear' ? (
+                      <FaSun className="text-xl" />
+                    ) : (
+                      <FaCloud className="text-xl" />
+                    )}
+                  </div>
+                  <div className="text-base">{Math.round(item.main.temp)}°</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className='mt-8'></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <button 
                 onClick={() => navigate('/dashboard')}
@@ -135,8 +213,11 @@ const Home = () => {
                 </div>
               </button>
             </div>
+
           </div>
         </div>
+
+        
       </div>
     </div>
   );
