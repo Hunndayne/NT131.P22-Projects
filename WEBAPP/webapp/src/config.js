@@ -1,5 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const CLIENT_URL = import.meta.env.VITE_CLIENT_URL || 'http://localhost:5173';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.home.hunn.io.vn';
+const CLIENT_URL = import.meta.env.VITE_CLIENT_URL || 'http://home.hunn.io.vn';
 
 export const API_URLS = {
     BASE: API_BASE_URL,

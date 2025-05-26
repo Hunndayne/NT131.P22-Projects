@@ -17,7 +17,7 @@ const char* password = "28112005";
 // MQTT Broker details
 #define CONFIG_BROKER_URL       "mqtt.home.hunn.io.vn"
 #define CONFIG_BROKER_PORT      1883
-#define CONFIG_BROKER_USERNAME  "hunn"
+#define CONFIG_BROKER_USERNAME  "Hunn"
 #define CONFIG_BROKER_PASSWORD  "28112005"
 
 // Device and topic definitions for MQTT

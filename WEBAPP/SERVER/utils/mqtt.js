@@ -14,6 +14,7 @@ const deviceStates = {
     'Home/Sensor/Humidity': null,
     'esp32/rain_servo/state': 'CLOSE',  // Trạng thái cửa sổ
     'esp32/servo_door/state': 'CLOSE',   // Trạng thái cửa ra vào
+    'esp32/status/door_notifications': 'CLOSED', // Trạng thái cửa ra vào
     'Kitchen/Sensor/Gas': 'no_gas',  // Trạng thái cảm biến khí gas
     'esp32/rain/detected': 'DRY'  // Trạng thái cảm biến mưa
 };
@@ -176,8 +177,9 @@ const handleMessage = async (topic, message) => {
                 device = 'Window';
             } else if (topic === 'esp32/servo_door/state') {
                 device = 'Door';
+            } else if (topic === 'esp32/status/door_notifications') {
+                device = 'Door';
             }
-
             // Cập nhật trạng thái
             deviceStates[topic] = messageData;
 
@@ -214,6 +216,7 @@ client.on('connect', () => {
         'Home/Sensor/Humidity',
         'esp32/rain_servo/state',    // Topic cửa sổ
         'esp32/servo_door/state',     // Topic cửa ra vào
+        'esp32/status/door_notifications', // Topic cửa ra vào
         'Kitchen/Sensor/Gas',          // Topic cảm biến khí gas
         'esp32/rain/detected'          // Topic cảm biến mưa
     ];
