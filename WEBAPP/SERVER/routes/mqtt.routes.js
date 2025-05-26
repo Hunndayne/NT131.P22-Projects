@@ -48,7 +48,7 @@ router.get('/Window/status', isAuthenticated, (req, res) => {
 
 // Get door status
 router.get('/Door/status', isAuthenticated, (req, res) => {
-    const status = getDeviceState('esp32/servo_door/state');
+    const status = getDeviceState('esp32/status/door_notifications');
     res.json({ 
         status: 'ok',
         device: 'Door',

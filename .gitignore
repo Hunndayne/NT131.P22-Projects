@@ -1,3 +1,5 @@
 WEBAPP/SERVER/.env
 node_modules/server/.env
 WEBAPP/webapp/.env
+node_modules/server/.env
+WEBAPP/webapp/.env
