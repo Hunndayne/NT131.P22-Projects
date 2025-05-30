@@ -13,7 +13,7 @@ Trong cuộc sống hiện đại, con người ngày càng quan tâm đến s�
 
 ## Thành viên nhóm
 
-Dự án được thực hiện bởi Nhóm 3 của Trường Đại học Công nghệ - Thông tin - DHQG TPHCM, dưới sự hướng dẫn của GVHD: Lê Anh Tuấn.
+Dự án được thực hiện bởi Nhóm 3 của Trường Đại học Công nghệ Thông tin - ĐHQG TPHCM, dưới sự hướng dẫn của GVHD: Lê Anh Tuấn.
 * Trần Thanh Hùng - 23520580 
 * Đỗ Thái Hậu - 23520450 
 * Nguyễn Trung Hiếu - 23520487 
